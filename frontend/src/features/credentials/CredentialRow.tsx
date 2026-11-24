@@ -29,6 +29,23 @@ function getDomain(url?: string): string | null {
   }
 }
 
+/**
+ * Base API URL for backend proxy requests. Trim trailing slashes to prevent double slashes.
+ */
+const API_BASE = (
+  (import.meta.env.VITE_API_BASE_URL as string | undefined) ||
+  "http://localhost:5000/api/v1"
+).replace(/\/+$/, "");
+
+/**
+ * CredentialRow renders a single login credential item with an absolute-URL proxied
+ * favicon (using crossOrigin="anonymous" to comply with backend Helmet CORS/CORP headers)
+ * and falls back to a colored monogram avatar on 404 or network failure.
+ *
+ * @param props.credential - Decrypted login vault item.
+ * @param props.onEdit - Callback to open edit modal.
+ * @param props.onDelete - Callback to open delete confirmation modal.
+ */
 export function CredentialRow({ credential, onEdit, onDelete }: CredentialRowProps) {
   const { toast } = useToast();
   const [revealed, setRevealed] = useState(false);
@@ -56,9 +73,10 @@ export function CredentialRow({ credential, onEdit, onDelete }: CredentialRowPro
         {showFavicon && domain ? (
           <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-100 p-1.5 shadow-xs dark:border-slate-700 dark:bg-slate-800">
             <img
-              src={`/api/v1/favicon?domain=${encodeURIComponent(domain)}`}
+              src={`${API_BASE}/favicon?domain=${encodeURIComponent(domain)}`}
               alt={credential.title}
               className="h-full w-full object-contain"
+              crossOrigin="anonymous"
               onError={() => setFailedDomain(domain)}
               loading="lazy"
             />
