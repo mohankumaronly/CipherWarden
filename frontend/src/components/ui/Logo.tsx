@@ -14,7 +14,7 @@ export function Logo({ className, showText = true, size = "md" }: LogoProps) {
 
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
-      <div className={cn("grid place-items-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-sm", box)}>
+      <div className={cn("grid place-items-center rounded-xl bg-linear-to-br from-brand-500 to-brand-700 text-white shadow-sm", box)}>
         <ShieldCheck className={icon} />
       </div>
       {showText && (

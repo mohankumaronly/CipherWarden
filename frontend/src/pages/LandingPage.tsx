@@ -407,7 +407,7 @@ export function LandingPage() {
 
       {/* Final CTA */}
       <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 to-brand-800 px-6 py-16 text-center shadow-2xl sm:px-12">
+        <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-brand-600 to-brand-800 px-6 py-16 text-center shadow-2xl sm:px-12">
           <div className="absolute inset-0 grid-pattern opacity-20" aria-hidden="true" />
           <div className="relative">
             <Zap className="mx-auto h-10 w-10 text-white/90" />
