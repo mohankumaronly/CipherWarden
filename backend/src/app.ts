@@ -12,6 +12,7 @@ import { ok } from "./common/utils/response";
 import vaultRoutes from "./modules/vault/vault.routes";
 import itemRoutes from "./modules/items/vaultItem.routes";
 import folderRoutes from "./modules/folders/folder.routes";
+import faviconRoutes from "./modules/favicon/favicon.routes";
 
 const allowedOrigins = [env.CLIENT_ORIGIN];
 
@@ -68,6 +69,7 @@ export function createApp() {
   api.use("/vault", vaultRoutes);
   api.use("/credentials", itemRoutes);
   api.use("/folders", folderRoutes);
+  api.use("/favicon", faviconRoutes);
 
   app.use("/api/v1", api);
 

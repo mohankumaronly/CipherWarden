@@ -1,3 +1,8 @@
+/**
+ * @file CredentialRow.tsx
+ * @description List item displaying an individual login credential with proxied favicon and letter avatar fallback.
+ */
+
 import { useState } from "react";
 import { Check, Copy, Eye, EyeOff, ExternalLink, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
@@ -12,10 +17,43 @@ interface CredentialRowProps {
   onDelete: (credential: VaultLoginItem) => void;
 }
 
+/**
+ * Safely extracts the hostname/domain from a URL string.
+ */
+function getDomain(url?: string): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url.startsWith("http") ? url : `https://${url}`).hostname;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Base API URL for backend proxy requests. Trim trailing slashes to prevent double slashes.
+ */
+const API_BASE = (
+  (import.meta.env.VITE_API_BASE_URL as string | undefined) ||
+  "http://localhost:5000/api/v1"
+).replace(/\/+$/, "");
+
+/**
+ * CredentialRow renders a single login credential item with an absolute-URL proxied
+ * favicon (using crossOrigin="anonymous" to comply with backend Helmet CORS/CORP headers)
+ * and falls back to a colored monogram avatar on 404 or network failure.
+ *
+ * @param props.credential - Decrypted login vault item.
+ * @param props.onEdit - Callback to open edit modal.
+ * @param props.onDelete - Callback to open delete confirmation modal.
+ */
 export function CredentialRow({ credential, onEdit, onDelete }: CredentialRowProps) {
   const { toast } = useToast();
   const [revealed, setRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [failedDomain, setFailedDomain] = useState<string | null>(null);
+
+  const domain = getDomain(credential.url);
+  const showFavicon = Boolean(domain && failedDomain !== domain);
 
   const copyPassword = async () => {
     try {
@@ -31,11 +69,26 @@ export function CredentialRow({ credential, onEdit, onDelete }: CredentialRowPro
   return (
     <div className="group flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 transition-all hover:border-brand-300 hover:shadow-md sm:flex-row sm:items-center dark:border-slate-800 dark:bg-slate-900">
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <div
-          className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-sm font-bold text-white ${avatarColor(credential.id)}`}
-        >
-          {initials(credential.title)}
-        </div>
+        {/* Favicon / Letter Avatar */}
+        {showFavicon && domain ? (
+          <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-100 p-1.5 shadow-xs dark:border-slate-700 dark:bg-slate-800">
+            <img
+              src={`${API_BASE}/favicon?domain=${encodeURIComponent(domain)}`}
+              alt={credential.title}
+              className="h-full w-full object-contain"
+              crossOrigin="anonymous"
+              onError={() => setFailedDomain(domain)}
+              loading="lazy"
+            />
+          </div>
+        ) : (
+          <div
+            className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-sm font-bold text-white ${avatarColor(credential.id)}`}
+          >
+            {initials(credential.title)}
+          </div>
+        )}
+
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h3 className="truncate text-sm font-semibold text-slate-900 dark:text-white">
@@ -43,7 +96,7 @@ export function CredentialRow({ credential, onEdit, onDelete }: CredentialRowPro
             </h3>
             {credential.url && (
               <a
-                href={credential.url}
+                href={credential.url.startsWith("http") ? credential.url : `https://${credential.url}`}
                 target="_blank"
                 rel="noreferrer"
                 className="text-slate-400 transition-colors hover:text-brand-600"
