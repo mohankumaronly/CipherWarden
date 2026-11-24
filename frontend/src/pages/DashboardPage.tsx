@@ -1,11 +1,11 @@
 /**
  * @file DashboardPage.tsx
- * @description Main authenticated dashboard with Bitwarden-style two-pane shell and folder filtering.
+ * @description Main authenticated dashboard with Bitwarden-style two-pane shell, dense data table, and multi-type vault item support.
  */
 
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { KeyRound, Lock, Search, ShieldCheck, X } from "lucide-react";
+import { CreditCard, KeyRound, Lock, Search, ShieldCheck, X } from "lucide-react";
 import { VaultLayout } from "../layouts/VaultLayout";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -14,11 +14,16 @@ import { Spinner } from "../components/ui/Spinner";
 import { useVault } from "../contexts/VaultContext";
 import { useToast } from "../components/ui/Toast";
 import { CredentialFormDialog } from "../features/credentials/CredentialFormDialog";
-import { CredentialRow } from "../features/credentials/CredentialRow";
+import { CardFormDialog } from "../features/cards/CardFormDialog";
+import { VaultTable } from "../features/dashboard/VaultTable";
 import { NewItemMenu } from "../features/dashboard/NewItemMenu";
-import type { VaultLoginItem } from "../types";
+import type { VaultItem } from "../types";
 import type { PlainVaultPayload } from "../crypto/vaultKey";
 
+/**
+ * DashboardPage is the primary screen after vault unlock, presenting
+ * items filtered by category or folder in a Bitwarden-style table layout.
+ */
 export function DashboardPage() {
   const navigate = useNavigate();
   const {
@@ -34,9 +39,10 @@ export function DashboardPage() {
   const { toast } = useToast();
 
   const [query, setQuery] = useState("");
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<VaultLoginItem | null>(null);
-  const [deleting, setDeleting] = useState<VaultLoginItem | null>(null);
+  const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+  const [cardDialogOpen, setCardDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<VaultItem | null>(null);
+  const [deletingItem, setDeletingItem] = useState<VaultItem | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Compute title for the header based on activeFilter
@@ -64,7 +70,7 @@ export function DashboardPage() {
     });
   }, [credentials, activeFilter]);
 
-  // Search filter
+  // Search filter supporting logins and cards
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return visible;
@@ -74,24 +80,32 @@ export function DashboardPage() {
           field.toLowerCase().includes(q)
         );
       }
-      return item.title.toLowerCase().includes(q);
+      if (item.type === "CARD") {
+        return [item.title, item.cardholderName, item.cardNumber].some((field) =>
+          field.toLowerCase().includes(q)
+        );
+      }
+      return false;
     });
   }, [visible, query]);
 
-  // Cast LOGIN items for CredentialRow rendering
-  const loginItems = useMemo(
-    () => filtered.filter((item): item is VaultLoginItem => item.type === "LOGIN"),
-    [filtered]
-  );
-
   const openAddLogin = () => {
-    setEditing(null);
-    setFormOpen(true);
+    setEditingItem(null);
+    setLoginDialogOpen(true);
   };
 
-  const openEdit = (credential: VaultLoginItem) => {
-    setEditing(credential);
-    setFormOpen(true);
+  const openAddCard = () => {
+    setEditingItem(null);
+    setCardDialogOpen(true);
+  };
+
+  const openEdit = (item: VaultItem) => {
+    setEditingItem(item);
+    if (item.type === "LOGIN") {
+      setLoginDialogOpen(true);
+    } else if (item.type === "CARD") {
+      setCardDialogOpen(true);
+    }
   };
 
   const onLock = async () => {
@@ -100,23 +114,23 @@ export function DashboardPage() {
     navigate("/unlock", { replace: true });
   };
 
-  const handleSubmit = async (data: PlainVaultPayload) => {
-    if (editing) {
-      await updateCredential(editing.id, data);
-      toast("Credential updated", "success");
+  const handleSaveItem = async (data: PlainVaultPayload) => {
+    if (editingItem) {
+      await updateCredential(editingItem.id, data);
+      toast(data.type === "LOGIN" ? "Login updated" : "Card updated", "success");
     } else {
       await addCredential(data);
-      toast("Credential added", "success");
+      toast(data.type === "LOGIN" ? "Login added" : "Card added", "success");
     }
   };
 
   const confirmDelete = async () => {
-    if (!deleting) return;
+    if (!deletingItem) return;
     setDeleteLoading(true);
     try {
-      await deleteCredential(deleting.id);
-      toast("Credential deleted", "success");
-      setDeleting(null);
+      await deleteCredential(deletingItem.id);
+      toast("Item deleted", "success");
+      setDeletingItem(null);
     } catch (err) {
       toast(err instanceof Error ? err.message : "Delete failed", "error");
     } finally {
@@ -139,7 +153,7 @@ export function DashboardPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <NewItemMenu onNewLogin={openAddLogin} />
+              <NewItemMenu onNewLogin={openAddLogin} onNewCard={openAddCard} />
               <Button variant="outline" size="sm" onClick={onLock}>
                 <Lock className="h-4 w-4" />
                 Lock vault
@@ -182,6 +196,8 @@ export function DashboardPage() {
               <div className="grid h-14 w-14 place-items-center rounded-2xl bg-brand-50 text-brand-600 dark:bg-brand-900/30">
                 {query ? (
                   <Search className="h-7 w-7" />
+                ) : activeFilter.kind === "type" && activeFilter.type === "CARD" ? (
+                  <CreditCard className="h-7 w-7" />
                 ) : (
                   <KeyRound className="h-7 w-7" />
                 )}
@@ -203,30 +219,28 @@ export function DashboardPage() {
                   : activeFilter.kind === "folder"
                   ? "Items assigned to this folder will appear here."
                   : activeFilter.kind === "type" && activeFilter.type === "CARD"
-                  ? "Card management will be available in Phase 6.3."
+                  ? "Click New → New Card above to add your first payment card."
                   : credentials.length === 0
-                  ? "Add your first credential. It will be encrypted in your browser before being stored."
+                  ? "Add your first item. It will be encrypted in your browser before being stored."
                   : "Change the sidebar filter to view items."}
               </p>
               {credentials.length === 0 && (
-                <div className="mt-6">
+                <div className="mt-6 flex items-center gap-3">
                   <Button onClick={openAddLogin}>
-                    Add your first credential
+                    Add your first login
+                  </Button>
+                  <Button variant="outline" onClick={openAddCard}>
+                    Add your first card
                   </Button>
                 </div>
               )}
             </div>
           ) : (
-            <div className="space-y-3">
-              {loginItems.map((credential) => (
-                <CredentialRow
-                  key={credential.id}
-                  credential={credential}
-                  onEdit={openEdit}
-                  onDelete={setDeleting}
-                />
-              ))}
-            </div>
+            <VaultTable
+              items={filtered}
+              onEdit={openEdit}
+              onDelete={setDeletingItem}
+            />
           )}
 
           <div className="mt-10 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
@@ -237,23 +251,36 @@ export function DashboardPage() {
       </div>
 
       <CredentialFormDialog
-        open={formOpen}
-        onClose={() => setFormOpen(false)}
-        onSubmit={handleSubmit}
-        initial={editing}
+        open={loginDialogOpen}
+        onClose={() => {
+          setLoginDialogOpen(false);
+          setEditingItem(null);
+        }}
+        onSubmit={handleSaveItem}
+        initial={editingItem?.type === "LOGIN" ? editingItem : null}
+      />
+
+      <CardFormDialog
+        open={cardDialogOpen}
+        onClose={() => {
+          setCardDialogOpen(false);
+          setEditingItem(null);
+        }}
+        onSubmit={handleSaveItem}
+        initial={editingItem?.type === "CARD" ? editingItem : null}
       />
 
       <Dialog
-        open={Boolean(deleting)}
-        onClose={() => setDeleting(null)}
-        title="Delete credential?"
+        open={Boolean(deletingItem)}
+        onClose={() => setDeletingItem(null)}
+        title={deletingItem?.type === "CARD" ? "Delete payment card?" : "Delete credential?"}
         description="This action cannot be undone."
         size="sm"
         footer={
           <>
             <Button
               variant="ghost"
-              onClick={() => setDeleting(null)}
+              onClick={() => setDeletingItem(null)}
               disabled={deleteLoading}
             >
               Cancel
@@ -271,7 +298,7 @@ export function DashboardPage() {
         <p className="text-sm text-slate-600 dark:text-slate-400">
           You are about to permanently delete{" "}
           <span className="font-semibold text-slate-900 dark:text-white">
-            {deleting?.title}
+            {deletingItem?.title}
           </span>
           . This will remove the encrypted record from the server.
         </p>
