@@ -1,6 +1,6 @@
 {
   "info": {
-    "name": "My-Vault API",
+    "name": "CipherWarden API",
     "description": "Master-key-only zero-knowledge password manager.\n\nQUICK START (works out of the box):\n- A vault has already been provisioned on the dev database using the exact values in the collection variables (salt, wrappedVaultKey, keyNonce, authVerifier).\n- With TEST_MODE=true, the X-Test-API-Key header bypasses CSRF and rate limits.\n- Just run the requests in order: 00 Health -> 01 Metadata -> 03 Unlock -> 05 Create -> 06 List -> 07 Get -> 08 Update -> 09 Delete -> 10 Lock.\n- Step 02 (Setup) will return 409 because the vault already exists - this is expected and correct.\n\nSTARTING FROM A FRESH DATABASE:\n1. Clear existing vault data or use a new DATABASE_URL.\n2. Run `node scripts/generate-test-verifier.js` in backend/ to produce a fresh base64 authVerifier + envelope.\n3. Paste the printed values into the collection variables (authVerifier, salt, wrappedVaultKey, keyNonce).\n4. Run 02 Setup (returns 201 + csrfToken), then continue.\n\nAll endpoints are under {{baseUrl}} = http://localhost:5000/api/v1",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
