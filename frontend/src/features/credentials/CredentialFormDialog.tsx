@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Dialog } from "../../components/ui/Dialog";
 import { Button } from "../../components/ui/Button";
 import { Input, PasswordInput } from "../../components/ui/Input";
+import { GeneratorPanel } from "../generator/GeneratorPanel.tsx";
 import type { PlainCredential } from "../../crypto/vaultKey";
 import type { VaultCredential } from "../../types";
 
@@ -26,6 +27,7 @@ export function CredentialFormDialog({ open, onClose, onSubmit, initial }: Crede
   const [form, setForm] = useState<FormState>(emptyState);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [generatorOpen, setGeneratorOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -109,6 +111,27 @@ export function CredentialFormDialog({ open, onClose, onSubmit, initial }: Crede
           onChange={update("password")}
           required
         />
+        {/* Generator trigger below the input; PasswordInput does not accept a trailing slot. */}
+        <div className="flex items-center justify-between gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setGeneratorOpen((v) => !v)}
+          >
+            {generatorOpen ? "Hide generator" : "Generate strong password"}
+          </Button>
+        </div>
+
+        {generatorOpen && (
+          <GeneratorPanel
+            onGenerate={(value) => {
+              setForm((prev) => ({ ...prev, password: value }));
+              setGeneratorOpen(false);
+            }}
+            onClose={() => setGeneratorOpen(false)}
+          />
+        )}
         <Input
           label="Website URL"
           placeholder="https://example.com"
