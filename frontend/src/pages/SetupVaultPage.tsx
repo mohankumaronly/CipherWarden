@@ -46,7 +46,7 @@ export function SetupVaultPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900">
+    <div className="flex min-h-screen flex-col bg-linear-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
         <Link to="/">
           <Logo />
