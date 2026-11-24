@@ -17,12 +17,12 @@ import {
   encryptCredential,
   unwrapDek,
   wrapDek,
-  type PlainCredential,
+  type PlainVaultPayload,
 } from "../crypto/vaultKey";
-import { credentialApi } from "../services/credentialApi";
+import { vaultItemApi } from "../services/vaultItemApi";
 import { setCsrfToken } from "../services/api";
 import { vaultApi } from "../services/vaultApi";
-import type { VaultCredential } from "../types";
+import type { VaultItem } from "../types";
 
 const AUTO_LOCK_MS = 3 * 60 * 1000; // 3 minutes inactivity
 const MAX_SESSION_MS = 5 * 60 * 1000; // 5 minutes hard cap
@@ -30,7 +30,7 @@ const MAX_SESSION_MS = 5 * 60 * 1000; // 5 minutes hard cap
 interface VaultContextValue {
   status: "checking" | "setup" | "locked" | "unlocked";
   vaultId: string | null;
-  credentials: VaultCredential[];
+  credentials: VaultItem[];
   loadingCredentials: boolean;
   error: string | null;
   unlockExpiresAt: number | null;
@@ -40,8 +40,8 @@ interface VaultContextValue {
   unlockVault: (masterKey: string) => Promise<void>;
   lockVault: () => Promise<void>;
 
-  addCredential: (input: PlainCredential) => Promise<void>;
-  updateCredential: (id: string, input: PlainCredential) => Promise<void>;
+  addCredential: (input: PlainVaultPayload) => Promise<void>;
+  updateCredential: (id: string, input: PlainVaultPayload) => Promise<void>;
   deleteCredential: (id: string) => Promise<void>;
   reloadCredentials: () => Promise<void>;
 }
@@ -57,7 +57,7 @@ interface SessionState {
 export function VaultProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<VaultContextValue["status"]>("checking");
   const [vaultId, setVaultId] = useState<string | null>(null);
-  const [credentials, setCredentials] = useState<VaultCredential[]>([]);
+  const [credentials, setCredentials] = useState<VaultItem[]>([]);
   const [loadingCredentials, setLoadingCredentials] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [unlockExpiresAt, setUnlockExpiresAt] = useState<number | null>(null);
@@ -96,7 +96,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   const decryptAll = useCallback(async (vaultIdValue: string, dekKey: CryptoKey) => {
     setLoadingCredentials(true);
     try {
-      const records = await credentialApi.list();
+      const records = await vaultItemApi.list();
       const decrypted = await Promise.all(
         records.map(async (r) => {
           try {
@@ -108,20 +108,25 @@ export function VaultProvider({ children }: { children: ReactNode }) {
               r.nonce,
               r.encryptionVersion
             );
+            // Legacy items encrypted before Phase 6.0 don't have `type` in the
+            // JSON payload. Fall back to the `type` column returned by the backend.
+            const resolvedType = plain.type ?? (r.type as "LOGIN" | "CARD") ?? "LOGIN";
             return {
+              ...plain,
+              type: resolvedType,
               id: r.id,
+              folderId: r.folderId,
               recordVersion: r.recordVersion,
               encryptionVersion: r.encryptionVersion,
               createdAt: r.createdAt,
               updatedAt: r.updatedAt,
-              ...plain,
-            } as VaultCredential;
+            } as VaultItem;
           } catch {
             return null;
           }
         })
       );
-      setCredentials(decrypted.filter((c): c is VaultCredential => c !== null));
+      setCredentials(decrypted.filter((c): c is VaultItem => c !== null));
     } finally {
       setLoadingCredentials(false);
     }
@@ -242,22 +247,19 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   }, [vaultId, decryptAll]);
 
   const addCredential = useCallback(
-    async (input: PlainCredential) => {
+    async (input: PlainVaultPayload) => {
       const session = sessionRef.current;
       if (!vaultId || !session) throw new Error("Vault is locked");
-      const enc = await encryptCredential(session.dekKey, vaultId, "pending", input, 1);
-      const record = await credentialApi.create({
+      // Generate the id on the frontend so the AAD is bound to the final id
+      // from the first encrypt — no two-step create/re-encrypt needed.
+      const newId = crypto.randomUUID();
+      const enc = await encryptCredential(session.dekKey, vaultId, newId, input, 1);
+      await vaultItemApi.create({
+        id: newId,
+        type: input.type,
         ciphertext: enc.ciphertext,
         nonce: enc.nonce,
         encryptionVersion: 1,
-      });
-      // Re-encrypt with the real record id so AAD binding matches future reads.
-      const finalEnc = await encryptCredential(session.dekKey, vaultId, record.id, input, 1);
-      await credentialApi.update(record.id, {
-        ciphertext: finalEnc.ciphertext,
-        nonce: finalEnc.nonce,
-        encryptionVersion: 1,
-        expectedRecordVersion: record.recordVersion,
       });
       await reloadCredentials();
     },
@@ -265,7 +267,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   );
 
   const updateCredential = useCallback(
-    async (id: string, input: PlainCredential) => {
+    async (id: string, input: PlainVaultPayload) => {
       const session = sessionRef.current;
       if (!vaultId || !session) throw new Error("Vault is locked");
       const existing = credentials.find((c) => c.id === id);
@@ -277,7 +279,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         input,
         existing.encryptionVersion
       );
-      await credentialApi.update(id, {
+      await vaultItemApi.update(id, {
         ciphertext: enc.ciphertext,
         nonce: enc.nonce,
         encryptionVersion: existing.encryptionVersion,
@@ -291,7 +293,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   const deleteCredential = useCallback(
     async (id: string) => {
       if (!vaultId) throw new Error("Vault is locked");
-      await credentialApi.remove(id);
+      await vaultItemApi.remove(id);
       setCredentials((prev) => prev.filter((c) => c.id !== id));
     },
     [vaultId]

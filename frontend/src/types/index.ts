@@ -27,8 +27,14 @@ export interface SessionResponse {
   expiresAt: string;
 }
 
-export interface CredentialRecord {
+/** Discriminator for vault item types. Open string allows future types without schema changes. */
+export type VaultItemType = "LOGIN" | "CARD";
+
+/** Wire record returned by the backend for every vault item (ciphertext not yet decrypted). */
+export interface VaultItemRecord {
   id: string;
+  type: string;
+  folderId: string | null;
   ciphertext: string;
   nonce: string;
   encryptionVersion: number;
@@ -37,8 +43,11 @@ export interface CredentialRecord {
   updatedAt: string;
 }
 
-export interface VaultCredential {
+/** Decrypted login credential. */
+export interface VaultLoginItem {
   id: string;
+  type: "LOGIN";
+  folderId: string | null;
   title: string;
   username: string;
   password: string;
@@ -49,6 +58,35 @@ export interface VaultCredential {
   createdAt: string;
   updatedAt: string;
 }
+
+/** Decrypted card entry (future use — Phase 6.1+). */
+export interface VaultCardItem {
+  id: string;
+  type: "CARD";
+  folderId: string | null;
+  title: string;
+  cardholderName: string;
+  cardNumber: string;
+  expiry: string;
+  cvv: string;
+  notes?: string;
+  recordVersion: number;
+  encryptionVersion: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Discriminated union of all decrypted vault item types. */
+export type VaultItem = VaultLoginItem | VaultCardItem;
+
+// ---------------------------------------------------------------------------
+// Backwards-compat aliases kept so old imports still compile during migration.
+// Remove in Phase 6.1 cleanup.
+// ---------------------------------------------------------------------------
+/** @deprecated Use VaultItemRecord */
+export type CredentialRecord = VaultItemRecord;
+/** @deprecated Use VaultLoginItem */
+export type VaultCredential = VaultLoginItem;
 
 export interface VaultSession {
   vaultId: string;

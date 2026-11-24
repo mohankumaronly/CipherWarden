@@ -9,8 +9,8 @@ import { useVault } from "../contexts/VaultContext";
 import { useToast } from "../components/ui/Toast";
 import { CredentialFormDialog } from "../features/credentials/CredentialFormDialog";
 import { CredentialRow } from "../features/credentials/CredentialRow";
-import type { VaultCredential } from "../types";
-import type { PlainCredential } from "../crypto/vaultKey";
+import type { VaultLoginItem } from "../types";
+import type { PlainVaultPayload } from "../crypto/vaultKey";
 
 export function DashboardPage() {
   const { credentials, loadingCredentials, addCredential, updateCredential, deleteCredential } = useVault();
@@ -18,29 +18,35 @@ export function DashboardPage() {
 
   const [query, setQuery] = useState("");
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<VaultCredential | null>(null);
-  const [deleting, setDeleting] = useState<VaultCredential | null>(null);
+  const [editing, setEditing] = useState<VaultLoginItem | null>(null);
+  const [deleting, setDeleting] = useState<VaultLoginItem | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // For now only LOGIN items are rendered. CARD rendering lands in Phase 6.1.
+  const loginItems = useMemo(
+    () => credentials.filter((c): c is VaultLoginItem => c.type === "LOGIN"),
+    [credentials]
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return credentials;
-    return credentials.filter((c) =>
+    if (!q) return loginItems;
+    return loginItems.filter((c) =>
       [c.title, c.username, c.url ?? ""].some((field) => field.toLowerCase().includes(q))
     );
-  }, [credentials, query]);
+  }, [loginItems, query]);
 
   const openAdd = () => {
     setEditing(null);
     setFormOpen(true);
   };
 
-  const openEdit = (credential: VaultCredential) => {
+  const openEdit = (credential: VaultLoginItem) => {
     setEditing(credential);
     setFormOpen(true);
   };
 
-  const handleSubmit = async (data: PlainCredential) => {
+  const handleSubmit = async (data: PlainVaultPayload) => {
     if (editing) {
       await updateCredential(editing.id, data);
       toast("Credential updated", "success");

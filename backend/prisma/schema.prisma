@@ -24,16 +24,37 @@ model Vault {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  credentials Credential[]
-  sessions    Session[]
-  auditLogs   AuditLog[]
+  items     VaultItem[]
+  folders   Folder[]
+  sessions  Session[]
+  auditLogs AuditLog[]
 
   @@map("vaults")
 }
 
-model Credential {
+/// Organisational folder for vault items. Optional grouping only.
+model Folder {
+  id        String     @id @default(uuid())
+  vaultId   String
+  name      String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  vault Vault      @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  items VaultItem[]
+
+  @@index([vaultId])
+  @@map("folders")
+}
+
+/// A single encrypted entry in the vault (login, card, …).
+/// The DB table is vault_items; the old `credentials` table is migrated into it.
+model VaultItem {
   id                String   @id @default(uuid())
   vaultId           String
+  /// Discriminator: "LOGIN" | "CARD" (open string to allow future types without migrations)
+  type              String   @default("LOGIN")
+  folderId          String?
   ciphertext        String
   nonce             String
   encryptionVersion Int      @default(1)
@@ -41,10 +62,12 @@ model Credential {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  vault Vault @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  vault  Vault   @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  folder Folder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
 
   @@index([vaultId])
-  @@map("credentials")
+  @@index([folderId])
+  @@map("vault_items")
 }
 
 model Session {
