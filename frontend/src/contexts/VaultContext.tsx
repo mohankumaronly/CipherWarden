@@ -308,31 +308,41 @@ export function VaultProvider({ children }: { children: ReactNode }) {
 
       if (savedDek && savedCsrf && savedId && savedSalt && savedEncVer) {
         try {
-          // 1. Restore the CSRF token immediately
+          // 1. Restore the CSRF token immediately so credentialApi.list() can send it
           setCsrfToken(savedCsrf);
-          
+
           // 2. Rebuild the CryptoKey from storage
           const dekBytes = base64ToBytes(savedDek);
           const key = await dekToCryptoKey(dekBytes);
-          
-          // 3. Restore React memory
+
+          // 3. Stage session in ref — do NOT set status="unlocked" yet.
+          //    decryptAll calls credentialApi.list() which requires a live backend
+          //    cookie. If the cookie is expired the call throws a 401. We only
+          //    surface the unlocked status to the UI once we know the backend
+          //    session is healthy.
           sessionRef.current = {
             dekKey: key,
             saltB64: savedSalt,
             encryptionVersion: parseInt(savedEncVer, 10),
           };
-          setVaultId(savedId);
-          setStatus("unlocked");
           lastActivityRef.current = Date.now();
           hardCapRef.current = Date.now() + MAX_SESSION_MS;
-          setUnlockExpiresAt(hardCapRef.current);
-          
-          // 4. Fetch credentials (this verifies the backend cookie is still valid)
+
+          // 4. Verify backend session is alive by fetching credentials.
+          //    Throws ApiError(401) if the cookie is missing or expired.
           await decryptAll(savedId, key);
-          return; 
-        } catch (err) {
-          // If cookie expired or decryption failed, clear everything and force unlock
-          console.warn("Session restore failed, forcing lock.");
+
+          // 5. Backend confirmed healthy — now commit the unlocked state.
+          setVaultId(savedId);
+          setUnlockExpiresAt(hardCapRef.current);
+          setStatus("unlocked");
+          return;
+        } catch {
+          // Backend session is dead (401) or crypto failed.
+          // Clear everything so the UI shows the lock screen, not a zombie state.
+          sessionRef.current = null;
+          hardCapRef.current = null;
+          setCsrfToken(null);
           sessionStorage.removeItem("vault_dek");
           sessionStorage.removeItem("vault_csrf");
           sessionStorage.removeItem("vault_id");
