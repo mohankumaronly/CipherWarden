@@ -11,6 +11,7 @@ import { errorHandler, notFoundHandler } from "./common/middleware/errorHandler"
 import { ok } from "./common/utils/response";
 import vaultRoutes from "./modules/vault/vault.routes";
 import itemRoutes from "./modules/items/vaultItem.routes";
+import folderRoutes from "./modules/folders/folder.routes";
 
 const allowedOrigins = [env.CLIENT_ORIGIN];
 
@@ -66,6 +67,7 @@ export function createApp() {
 
   api.use("/vault", vaultRoutes);
   api.use("/credentials", itemRoutes);
+  api.use("/folders", folderRoutes);
 
   app.use("/api/v1", api);
 

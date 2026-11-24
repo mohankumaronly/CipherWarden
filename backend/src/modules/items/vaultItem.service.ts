@@ -60,6 +60,7 @@ export const vaultItemService = {
       id: input.id,
       vaultId,
       type: input.type,
+      folderId: input.folderId,
       ciphertext: input.ciphertext,
       nonce: input.nonce,
       encryptionVersion: input.encryptionVersion,
@@ -74,6 +75,7 @@ export const vaultItemService = {
       id,
       input.expectedRecordVersion,
       {
+        folderId: input.folderId,
         ciphertext: input.ciphertext,
         nonce: input.nonce,
         encryptionVersion: input.encryptionVersion,

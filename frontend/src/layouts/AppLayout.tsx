@@ -7,7 +7,13 @@ import { useVault } from "../contexts/VaultContext";
 import { useToast } from "../components/ui/Toast";
 import { Spinner } from "../components/ui/Spinner";
 
-export function AppLayout({ children }: { children: ReactNode }) {
+export function AppLayout({
+  children,
+  bare = false,
+}: {
+  children: ReactNode;
+  bare?: boolean;
+}) {
   const navigate = useNavigate();
   const { status, lockVault, vaultId, unlockExpiresAt } = useVault();
   const { toast } = useToast();
@@ -23,6 +29,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <Spinner className="h-7 w-7" />
       </div>
     );
+  }
+
+  if (bare) {
+    return <>{children}</>;
   }
 
   const onLock = async () => {

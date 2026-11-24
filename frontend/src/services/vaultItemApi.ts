@@ -7,12 +7,14 @@ export interface CreateVaultItemRequest {
   id: string;
   /** Discriminator stored server-side ("LOGIN" | "CARD"). */
   type: string;
+  folderId?: string | null;
   ciphertext: string;
   nonce: string;
   encryptionVersion: number;
 }
 
 export interface UpdateVaultItemRequest {
+  folderId?: string | null;
   ciphertext: string;
   nonce: string;
   encryptionVersion: number;
