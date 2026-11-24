@@ -40,7 +40,7 @@ DEK ──AES-GCM──► ciphertext + nonce ──────► ciphertext r
 ## Project Structure
 
 ```
-My-Vault/
+CipherWarden/
 ├── backend/
 │   ├── prisma/schema.prisma        # Vault, Credential, Session, AuditLog
 │   ├── scripts/
