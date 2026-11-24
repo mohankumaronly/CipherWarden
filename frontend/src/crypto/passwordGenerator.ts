@@ -64,6 +64,18 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 /**
+ * Filters characters based on the ambiguous character set rule.
+ * Serves as the single source of truth for ambiguous-character exclusion.
+ */
+function filterAmbiguous(chars: string, avoidAmbiguous: boolean): string {
+  if (!avoidAmbiguous) return chars;
+  return chars
+    .split("")
+    .filter((c) => !AMBIGUOUS.includes(c))
+    .join("");
+}
+
+/**
  * Builds the composite character set for password mode based on selected options.
  */
 function buildCharset(opts: PasswordOptions): string {
@@ -72,13 +84,7 @@ function buildCharset(opts: PasswordOptions): string {
   if (opts.includeUppercase) charset += UPPERCASE;
   if (opts.includeDigits) charset += DIGITS;
   if (opts.includeSymbols) charset += SYMBOLS;
-  if (opts.avoidAmbiguous) {
-    charset = charset
-      .split("")
-      .filter((char) => !AMBIGUOUS.includes(char))
-      .join("");
-  }
-  return charset;
+  return filterAmbiguous(charset, opts.avoidAmbiguous);
 }
 
 /**
@@ -98,16 +104,19 @@ export function generatePassword(options: GeneratorOptions): string {
         throw new Error("At least one character class must be selected");
       }
 
-      const filterClass = (chars: string) =>
-        options.avoidAmbiguous
-          ? chars.split("").filter((c) => !AMBIGUOUS.includes(c)).join("")
-          : chars;
-
       const selectedClasses: string[] = [];
-      if (options.includeLowercase) selectedClasses.push(filterClass(LOWERCASE));
-      if (options.includeUppercase) selectedClasses.push(filterClass(UPPERCASE));
-      if (options.includeDigits) selectedClasses.push(filterClass(DIGITS));
-      if (options.includeSymbols) selectedClasses.push(filterClass(SYMBOLS));
+      if (options.includeLowercase) {
+        selectedClasses.push(filterAmbiguous(LOWERCASE, options.avoidAmbiguous));
+      }
+      if (options.includeUppercase) {
+        selectedClasses.push(filterAmbiguous(UPPERCASE, options.avoidAmbiguous));
+      }
+      if (options.includeDigits) {
+        selectedClasses.push(filterAmbiguous(DIGITS, options.avoidAmbiguous));
+      }
+      if (options.includeSymbols) {
+        selectedClasses.push(filterAmbiguous(SYMBOLS, options.avoidAmbiguous));
+      }
 
       for (const cls of selectedClasses) {
         if (cls.length === 0) {
@@ -175,6 +184,14 @@ export function generatePassword(options: GeneratorOptions): string {
       return shuffle(DIGITS.split(""))
         .slice(0, options.length)
         .join("");
+    }
+
+    default: {
+      // Compile-time exhaustiveness check to prevent unhandled generator modes
+      const _exhaustive: never = options;
+      throw new Error(
+        `Unsupported generator mode: ${(_exhaustive as { mode: string }).mode}`
+      );
     }
   }
 }

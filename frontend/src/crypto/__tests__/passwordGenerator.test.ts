@@ -264,3 +264,13 @@ test("T-18: source grep for 'localStorage' / 'sessionStorage' in features/genera
     assert.equal(sessionCount, 0, `${file} must not contain sessionStorage`);
   }
 });
+
+test("T-19: unsupported mode throws via exhaustiveness guard", () => {
+  const bogus = { mode: "unknown" } as unknown as Parameters<
+    typeof generatePassword
+  >[0];
+  assert.throws(
+    () => generatePassword(bogus),
+    /Unsupported generator mode/
+  );
+});
