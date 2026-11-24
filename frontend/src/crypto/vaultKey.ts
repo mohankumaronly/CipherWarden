@@ -61,20 +61,39 @@ export async function dekToCryptoKey(dek: Uint8Array): Promise<CryptoKey> {
   return crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
 }
 
-export interface PlainCredential {
-  title: string;
-  username: string;
-  password: string;
-  url?: string;
-  notes?: string;
-}
+/**
+ * Discriminated union of all plaintext payloads that can be encrypted as a
+ * vault item. The `type` field is included in the ciphertext JSON so the
+ * frontend can reconstruct the correct variant after decryption.
+ */
+export type PlainVaultPayload =
+  | {
+      type: "LOGIN";
+      title: string;
+      username: string;
+      password: string;
+      url?: string;
+      notes?: string;
+    }
+  | {
+      type: "CARD";
+      title: string;
+      cardholderName: string;
+      cardNumber: string;
+      expiry: string;
+      cvv: string;
+      notes?: string;
+    };
 
-/** Encrypt a credential record with the vault DEK (AAD bound to id + version). */
+/** @deprecated Use PlainVaultPayload. Kept for backwards compat during migration. */
+export type PlainCredential = PlainVaultPayload;
+
+/** Encrypt a vault item record with the vault DEK (AAD bound to id + version). */
 export async function encryptCredential(
   dekKey: CryptoKey,
   vaultId: string,
   credentialId: string,
-  credential: PlainCredential,
+  credential: PlainVaultPayload,
   encryptionVersion = 1
 ): Promise<{ ciphertext: string; nonce: string }> {
   const aad = buildCredentialAad(vaultId, credentialId, encryptionVersion);
@@ -82,7 +101,7 @@ export async function encryptCredential(
   return encryptWithKey(dekKey, plaintext, aad);
 }
 
-/** Decrypt a credential record. Throws on tampering or wrong DEK. */
+/** Decrypt a vault item record. Throws on tampering or wrong DEK. */
 export async function decryptCredential(
   dekKey: CryptoKey,
   vaultId: string,
@@ -90,10 +109,10 @@ export async function decryptCredential(
   ciphertext: string,
   nonce: string,
   encryptionVersion = 1
-): Promise<PlainCredential> {
+): Promise<PlainVaultPayload> {
   const aad = buildCredentialAad(vaultId, credentialId, encryptionVersion);
   const plaintext = await decryptWithKey(dekKey, ciphertext, nonce, aad);
-  return JSON.parse(bytesToUtf8(plaintext)) as PlainCredential;
+  return JSON.parse(bytesToUtf8(plaintext)) as PlainVaultPayload;
 }
 
 /** Generate a base64 random string (for tests / temp ids). */

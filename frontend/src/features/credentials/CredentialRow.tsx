@@ -3,13 +3,13 @@ import { Check, Copy, Eye, EyeOff, ExternalLink, Pencil, Trash2 } from "lucide-r
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { useToast } from "../../components/ui/Toast";
-import type { VaultCredential } from "../../types";
+import type { VaultLoginItem } from "../../types";
 import { avatarColor, formatRelativeTime, initials } from "../../utils/format";
 
 interface CredentialRowProps {
-  credential: VaultCredential;
-  onEdit: (credential: VaultCredential) => void;
-  onDelete: (credential: VaultCredential) => void;
+  credential: VaultLoginItem;
+  onEdit: (credential: VaultLoginItem) => void;
+  onDelete: (credential: VaultLoginItem) => void;
 }
 
 export function CredentialRow({ credential, onEdit, onDelete }: CredentialRowProps) {

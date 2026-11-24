@@ -10,7 +10,7 @@ import { generalLimiter } from "./common/middleware/rateLimit";
 import { errorHandler, notFoundHandler } from "./common/middleware/errorHandler";
 import { ok } from "./common/utils/response";
 import vaultRoutes from "./modules/vault/vault.routes";
-import credentialRoutes from "./modules/credentials/credential.routes";
+import itemRoutes from "./modules/items/vaultItem.routes";
 
 const allowedOrigins = [env.CLIENT_ORIGIN];
 
@@ -65,7 +65,7 @@ export function createApp() {
   });
 
   api.use("/vault", vaultRoutes);
-  api.use("/credentials", credentialRoutes);
+  api.use("/credentials", itemRoutes);
 
   app.use("/api/v1", api);
 

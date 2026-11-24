@@ -3,14 +3,14 @@ import { Dialog } from "../../components/ui/Dialog";
 import { Button } from "../../components/ui/Button";
 import { Input, PasswordInput } from "../../components/ui/Input";
 import { GeneratorPanel } from "../generator/GeneratorPanel.tsx";
-import type { PlainCredential } from "../../crypto/vaultKey";
-import type { VaultCredential } from "../../types";
+import type { PlainVaultPayload } from "../../crypto/vaultKey";
+import type { VaultLoginItem } from "../../types";
 
 interface CredentialFormDialogProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: PlainCredential) => Promise<void>;
-  initial?: VaultCredential | null;
+  onSubmit: (data: PlainVaultPayload) => Promise<void>;
+  initial?: VaultLoginItem | null;
 }
 
 interface FormState {
@@ -68,6 +68,7 @@ export function CredentialFormDialog({ open, onClose, onSubmit, initial }: Crede
     setError(null);
     try {
       await onSubmit({
+        type: "LOGIN",
         title: form.title.trim(),
         username: form.username.trim(),
         password: form.password,
