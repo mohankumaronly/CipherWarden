@@ -49,6 +49,8 @@ export function CredentialFormDialog({ open, onClose, onSubmit, initial }: Crede
   // does not reopen pre-expanded.
   useEffect(() => {
     if (!open) {
+      // Safe: guarded by `if (!open)`, only fires on dialog close.
+      // oxlint-disable-next-line react/set-state-in-effect
       setGeneratorOpen(false);
     }
   }, [open]);
