@@ -45,6 +45,14 @@ export function CredentialFormDialog({ open, onClose, onSubmit, initial }: Crede
     setError(null);
   }, [open, initial]);
 
+  // Reset the generator panel when the dialog closes so it
+  // does not reopen pre-expanded.
+  useEffect(() => {
+    if (!open) {
+      setGeneratorOpen(false);
+    }
+  }, [open]);
+
   const update = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
   };
@@ -89,7 +97,12 @@ export function CredentialFormDialog({ open, onClose, onSubmit, initial }: Crede
         </>
       }
     >
-      <form id="credential-form" onSubmit={handleSubmit} className="space-y-4">
+      {/* Scrollable form body so the dialog header/footer stay visible when the generator panel expands. */}
+      <form
+        id="credential-form"
+        onSubmit={handleSubmit}
+        className="space-y-4 overflow-y-auto max-h-[calc(100vh-16rem)] pr-1"
+      >
         <Input
           label="Title"
           placeholder="e.g. GitHub"
