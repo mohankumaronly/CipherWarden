@@ -153,7 +153,8 @@ export function CredentialFormDialog({ open, onClose, onSubmit, initial }: Crede
           placeholder="https://example.com"
           value={form.url}
           onChange={update("url")}
-          type="url"
+          type="text"
+          inputMode="url"
         />
         <div>
           <label htmlFor="notes" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
