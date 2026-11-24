@@ -19,7 +19,7 @@ export function Logo({ className, showText = true, size = "md" }: LogoProps) {
       </div>
       {showText && (
         <span className={cn("font-bold tracking-tight text-slate-900 dark:text-white", text)}>
-          My<span className="text-brand-600">Vault</span>
+          Cipher<span className="text-brand-600">Warden</span>
         </span>
       )}
     </div>

@@ -67,7 +67,7 @@ const STEPS = [
   },
   {
     title: "Unlock anytime",
-    description: "Return and enter your master key to decrypt your vault locally — instantly and privately.",
+    description: "Return and enter your master key to decrypt your vault locally instantly and privately.",
   },
 ];
 
@@ -81,7 +81,7 @@ const FAQS = [
     a: "Only encrypted ciphertext leaves your browser. The server never receives your master key, KEK, or any decrypted credential.",
   },
   {
-    q: "Can I self-host My-Vault?",
+    q: "Can I self-host CipherWarden?",
     a: "Yes. The backend ships with a Dockerfile and Docker Compose configuration. Clone the repo, configure your environment, and run it on your own infrastructure.",
   },
   {
@@ -90,7 +90,7 @@ const FAQS = [
   },
 ];
 
-const SELF_HOST_SNIPPET = `git clone https://github.com/mohankumaronly/My-Vault.git
+const SELF_HOST_SNIPPET = `git clone https://github.com/mohankumaronly/CipherWarden
 cd My-Vault
 cp backend/.env.example backend/.env
 docker compose up -d`;
@@ -113,7 +113,7 @@ export function LandingPage() {
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 grid-pattern opacity-60 dark:opacity-20" aria-hidden="true" />
-        <div className="absolute -top-40 left-1/2 h-96 w-[42rem] -translate-x-1/2 rounded-full bg-brand-200/40 blur-3xl dark:bg-brand-800/20" aria-hidden="true" />
+        <div className="absolute -top-40 left-1/2 h-96 w-2xl -translate-x-1/2 rounded-full bg-brand-200/40 blur-3xl dark:bg-brand-800/20" aria-hidden="true" />
         <div className="relative mx-auto max-w-7xl px-4 pb-20 pt-16 sm:px-6 sm:pt-24 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
             <Badge tone="brand" className="mx-auto mb-5">
@@ -124,13 +124,13 @@ export function LandingPage() {
               Your secrets, <span className="text-gradient">encrypted</span> before they leave your browser.
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-pretty text-lg text-slate-600 dark:text-slate-300">
-              My-Vault is a self-hostable password manager with a true zero-knowledge design.
-              No email, no account password — just your master key.
+              CipherWarden is a self-hostable password manager with a true zero-knowledge design.
+              No email, no account password - just your master key.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link to="/unlock">
                 <Button size="lg">
-                  Get Started — it's free
+                  Get Started - it's free
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
@@ -333,7 +333,7 @@ export function LandingPage() {
                 Own your vault. Run it anywhere.
               </h2>
               <p className="mt-4 text-slate-300">
-                My-Vault is fully self-hostable. Spin up the backend with Docker Compose, point the
+                CipherWarden is fully self-hostable. Spin up the backend with Docker Compose, point the
                 frontend at your API, and you have a private, zero-knowledge password manager.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
@@ -417,7 +417,7 @@ export function LandingPage() {
             </p>
             <Link to="/unlock" className="mt-8 inline-block">
               <Button size="lg" className="bg-white text-brand-700 hover:bg-brand-50">
-                Open My Vault
+                Open CipherWarden
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
