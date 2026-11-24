@@ -53,6 +53,11 @@ export function GeneratorPanel({ onGenerate, onClose }: GeneratorPanelProps) {
         return passphraseOpts;
       case "pin":
         return pinOpts;
+      default: {
+        // Compile-time exhaustiveness check for GeneratorMode
+        const _exhaustive: never = targetMode;
+        throw new Error(`Unsupported generator mode: ${String(_exhaustive)}`);
+      }
     }
   };
 
