@@ -79,6 +79,20 @@ export interface VaultCardItem {
 /** Discriminated union of all decrypted vault item types. */
 export type VaultItem = VaultLoginItem | VaultCardItem;
 
+/** Representation of an organisational folder. */
+export interface VaultFolder {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
+/** Active filter selection in the vault dashboard sidebar. */
+export type VaultFilter =
+  | { kind: "all" }
+  | { kind: "favorites" }
+  | { kind: "type"; type: VaultItemType }
+  | { kind: "folder"; folderId: string };
+
 // ---------------------------------------------------------------------------
 // Backwards-compat aliases kept so old imports still compile during migration.
 // Remove in Phase 6.1 cleanup.

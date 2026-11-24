@@ -74,6 +74,7 @@ export type PlainVaultPayload =
       password: string;
       url?: string;
       notes?: string;
+      folderId?: string | null;
     }
   | {
       type: "CARD";
@@ -83,6 +84,7 @@ export type PlainVaultPayload =
       expiry: string;
       cvv: string;
       notes?: string;
+      folderId?: string | null;
     };
 
 /** @deprecated Use PlainVaultPayload. Kept for backwards compat during migration. */

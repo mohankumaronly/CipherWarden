@@ -14,12 +14,15 @@ export const createVaultItemSchema = z.object({
   id: uuidSchema.optional(),
   /** Discriminator stored server-side for listing/filtering without decryption. */
   type: z.string().min(1).max(32).default("LOGIN"),
+  /** Optional folder ID to assign this item to. */
+  folderId: uuidSchema.nullable().optional(),
   ciphertext: base64,
   nonce: base64,
   encryptionVersion: z.number().int().min(1).max(100).default(1),
 });
 
 export const updateVaultItemSchema = z.object({
+  folderId: uuidSchema.nullable().optional(),
   ciphertext: base64,
   nonce: base64,
   encryptionVersion: z.number().int().min(1).max(100).default(1),

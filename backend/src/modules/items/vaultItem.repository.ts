@@ -26,6 +26,7 @@ export const vaultItemRepository = {
     id?: string;
     vaultId: string;
     type: string;
+    folderId?: string | null;
     ciphertext: string;
     nonce: string;
     encryptionVersion: number;
@@ -41,7 +42,12 @@ export const vaultItemRepository = {
     vaultId: string,
     id: string,
     expectedVersion: number,
-    data: { ciphertext: string; nonce: string; encryptionVersion: number }
+    data: {
+      folderId?: string | null;
+      ciphertext: string;
+      nonce: string;
+      encryptionVersion: number;
+    }
   ) {
     const result = await prisma.vaultItem.updateMany({
       where: { id, vaultId, recordVersion: expectedVersion },

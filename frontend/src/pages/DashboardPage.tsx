@@ -1,6 +1,12 @@
+/**
+ * @file DashboardPage.tsx
+ * @description Main authenticated dashboard with Bitwarden-style two-pane shell and folder filtering.
+ */
+
 import { useMemo, useState } from "react";
-import { KeyRound, Plus, Search, ShieldCheck, X } from "lucide-react";
-import { AppLayout } from "../layouts/AppLayout";
+import { useNavigate } from "react-router-dom";
+import { KeyRound, Lock, Search, ShieldCheck, X } from "lucide-react";
+import { VaultLayout } from "../layouts/VaultLayout";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { Dialog } from "../components/ui/Dialog";
@@ -9,11 +15,22 @@ import { useVault } from "../contexts/VaultContext";
 import { useToast } from "../components/ui/Toast";
 import { CredentialFormDialog } from "../features/credentials/CredentialFormDialog";
 import { CredentialRow } from "../features/credentials/CredentialRow";
+import { NewItemMenu } from "../features/dashboard/NewItemMenu";
 import type { VaultLoginItem } from "../types";
 import type { PlainVaultPayload } from "../crypto/vaultKey";
 
 export function DashboardPage() {
-  const { credentials, loadingCredentials, addCredential, updateCredential, deleteCredential } = useVault();
+  const navigate = useNavigate();
+  const {
+    credentials,
+    folders,
+    activeFilter,
+    loadingCredentials,
+    lockVault,
+    addCredential,
+    updateCredential,
+    deleteCredential,
+  } = useVault();
   const { toast } = useToast();
 
   const [query, setQuery] = useState("");
@@ -22,21 +39,52 @@ export function DashboardPage() {
   const [deleting, setDeleting] = useState<VaultLoginItem | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // For now only LOGIN items are rendered. CARD rendering lands in Phase 6.1.
-  const loginItems = useMemo(
-    () => credentials.filter((c): c is VaultLoginItem => c.type === "LOGIN"),
-    [credentials]
-  );
+  // Compute title for the header based on activeFilter
+  const headerTitle = useMemo(() => {
+    if (activeFilter.kind === "all") return "All Items";
+    if (activeFilter.kind === "favorites") return "Favorites";
+    if (activeFilter.kind === "type") {
+      return activeFilter.type === "LOGIN" ? "Logins" : "Cards";
+    }
+    if (activeFilter.kind === "folder") {
+      const folder = folders.find((f) => f.id === activeFilter.folderId);
+      return folder ? folder.name : "Folder";
+    }
+    return "Your vault";
+  }, [activeFilter, folders]);
 
+  // Filter items according to the active sidebar filter
+  const visible = useMemo(() => {
+    return credentials.filter((item) => {
+      if (activeFilter.kind === "all") return true;
+      if (activeFilter.kind === "type") return item.type === activeFilter.type;
+      if (activeFilter.kind === "folder") return item.folderId === activeFilter.folderId;
+      if (activeFilter.kind === "favorites") return false; // Stub - Phase 6.4
+      return true;
+    });
+  }, [credentials, activeFilter]);
+
+  // Search filter
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return loginItems;
-    return loginItems.filter((c) =>
-      [c.title, c.username, c.url ?? ""].some((field) => field.toLowerCase().includes(q))
-    );
-  }, [loginItems, query]);
+    if (!q) return visible;
+    return visible.filter((item) => {
+      if (item.type === "LOGIN") {
+        return [item.title, item.username, item.url ?? ""].some((field) =>
+          field.toLowerCase().includes(q)
+        );
+      }
+      return item.title.toLowerCase().includes(q);
+    });
+  }, [visible, query]);
 
-  const openAdd = () => {
+  // Cast LOGIN items for CredentialRow rendering
+  const loginItems = useMemo(
+    () => filtered.filter((item): item is VaultLoginItem => item.type === "LOGIN"),
+    [filtered]
+  );
+
+  const openAddLogin = () => {
     setEditing(null);
     setFormOpen(true);
   };
@@ -44,6 +92,12 @@ export function DashboardPage() {
   const openEdit = (credential: VaultLoginItem) => {
     setEditing(credential);
     setFormOpen(true);
+  };
+
+  const onLock = async () => {
+    await lockVault();
+    toast("Vault locked", "info");
+    navigate("/unlock", { replace: true });
   };
 
   const handleSubmit = async (data: PlainVaultPayload) => {
@@ -71,83 +125,115 @@ export function DashboardPage() {
   };
 
   return (
-    <AppLayout>
-      <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Your vault</h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            {credentials.length} {credentials.length === 1 ? "credential" : "credentials"} · encrypted locally
-          </p>
-        </div>
-        <Button onClick={openAdd}>
-          <Plus className="h-4 w-4" />
-          Add credential
-        </Button>
-      </div>
-
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex-1">
-          <Input
-            placeholder="Search by title, username or URL…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            leftIcon={<Search className="h-4 w-4" />}
-            trailing={
-              query ? (
-                <button
-                  onClick={() => setQuery("")}
-                  className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
-                  aria-label="Clear search"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              ) : undefined
-            }
-          />
-        </div>
-      </div>
-
-      {loadingCredentials ? (
-        <div className="flex flex-col items-center gap-3 py-20 text-slate-400">
-          <Spinner />
-          <p className="text-sm">Decrypting your vault…</p>
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/50 px-6 py-20 text-center dark:border-slate-700 dark:bg-slate-900/50">
-          <div className="grid h-14 w-14 place-items-center rounded-2xl bg-brand-50 text-brand-600 dark:bg-brand-900/30">
-            {credentials.length === 0 ? <KeyRound className="h-7 w-7" /> : <Search className="h-7 w-7" />}
+    <VaultLayout>
+      <div className="flex flex-col min-h-full">
+        {/* Top header */}
+        <div className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 p-6 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                {headerTitle}
+              </h1>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                {visible.length} {visible.length === 1 ? "item" : "items"} · encrypted locally
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <NewItemMenu onNewLogin={openAddLogin} />
+              <Button variant="outline" size="sm" onClick={onLock}>
+                <Lock className="h-4 w-4" />
+                Lock vault
+              </Button>
+            </div>
           </div>
-          <h2 className="mt-4 text-lg font-semibold text-slate-900 dark:text-white">
-            {credentials.length === 0 ? "Your vault is empty" : "No matching credentials"}
-          </h2>
-          <p className="mt-1 max-w-sm text-sm text-slate-500 dark:text-slate-400">
-            {credentials.length === 0
-              ? "Add your first credential. It will be encrypted in your browser before being stored."
-              : "Try a different search term."}
-          </p>
-          {credentials.length === 0 && (
-            <Button className="mt-6" onClick={openAdd}>
-              <Plus className="h-4 w-4" />
-              Add your first credential
-            </Button>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {filtered.map((credential) => (
-            <CredentialRow
-              key={credential.id}
-              credential={credential}
-              onEdit={openEdit}
-              onDelete={setDeleting}
-            />
-          ))}
-        </div>
-      )}
 
-      <div className="mt-10 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
-        <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-500" />
-        All entries are encrypted with AES-256-GCM in your browser. The server only ever sees ciphertext.
+          <div className="mt-4 flex items-center gap-3">
+            <div className="flex-1">
+              <Input
+                placeholder="Search vault items…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                leftIcon={<Search className="h-4 w-4" />}
+                trailing={
+                  query ? (
+                    <button
+                      onClick={() => setQuery("")}
+                      className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
+                      aria-label="Clear search"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  ) : undefined
+                }
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Content list area */}
+        <div className="flex-1 p-6">
+          {loadingCredentials ? (
+            <div className="flex flex-col items-center gap-3 py-20 text-slate-400">
+              <Spinner />
+              <p className="text-sm">Decrypting your vault…</p>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/50 px-6 py-20 text-center dark:border-slate-700 dark:bg-slate-900/50">
+              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-brand-50 text-brand-600 dark:bg-brand-900/30">
+                {query ? (
+                  <Search className="h-7 w-7" />
+                ) : (
+                  <KeyRound className="h-7 w-7" />
+                )}
+              </div>
+              <h2 className="mt-4 text-lg font-semibold text-slate-900 dark:text-white">
+                {query
+                  ? "No matching items"
+                  : activeFilter.kind === "folder"
+                  ? "This folder is empty"
+                  : activeFilter.kind === "type" && activeFilter.type === "CARD"
+                  ? "No cards in this vault"
+                  : credentials.length === 0
+                  ? "Your vault is empty"
+                  : "No items to display"}
+              </h2>
+              <p className="mt-1 max-w-sm text-sm text-slate-500 dark:text-slate-400">
+                {query
+                  ? "Try a different search term."
+                  : activeFilter.kind === "folder"
+                  ? "Items assigned to this folder will appear here."
+                  : activeFilter.kind === "type" && activeFilter.type === "CARD"
+                  ? "Card management will be available in Phase 6.3."
+                  : credentials.length === 0
+                  ? "Add your first credential. It will be encrypted in your browser before being stored."
+                  : "Change the sidebar filter to view items."}
+              </p>
+              {credentials.length === 0 && (
+                <div className="mt-6">
+                  <Button onClick={openAddLogin}>
+                    Add your first credential
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {loginItems.map((credential) => (
+                <CredentialRow
+                  key={credential.id}
+                  credential={credential}
+                  onEdit={openEdit}
+                  onDelete={setDeleting}
+                />
+              ))}
+            </div>
+          )}
+
+          <div className="mt-10 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+            <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-500" />
+            All entries are encrypted with AES-256-GCM in your browser. The server only ever sees ciphertext.
+          </div>
+        </div>
       </div>
 
       <CredentialFormDialog
@@ -165,10 +251,18 @@ export function DashboardPage() {
         size="sm"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setDeleting(null)} disabled={deleteLoading}>
+            <Button
+              variant="ghost"
+              onClick={() => setDeleting(null)}
+              disabled={deleteLoading}
+            >
               Cancel
             </Button>
-            <Button variant="danger" onClick={confirmDelete} loading={deleteLoading}>
+            <Button
+              variant="danger"
+              onClick={confirmDelete}
+              loading={deleteLoading}
+            >
               Delete
             </Button>
           </>
@@ -176,10 +270,12 @@ export function DashboardPage() {
       >
         <p className="text-sm text-slate-600 dark:text-slate-400">
           You are about to permanently delete{" "}
-          <span className="font-semibold text-slate-900 dark:text-white">{deleting?.title}</span>.
-          This will remove the encrypted record from the server.
+          <span className="font-semibold text-slate-900 dark:text-white">
+            {deleting?.title}
+          </span>
+          . This will remove the encrypted record from the server.
         </p>
       </Dialog>
-    </AppLayout>
+    </VaultLayout>
   );
 }

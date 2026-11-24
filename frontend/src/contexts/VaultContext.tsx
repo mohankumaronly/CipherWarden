@@ -20,9 +20,10 @@ import {
   type PlainVaultPayload,
 } from "../crypto/vaultKey";
 import { vaultItemApi } from "../services/vaultItemApi";
+import { folderApi } from "../services/folderApi";
 import { setCsrfToken } from "../services/api";
 import { vaultApi } from "../services/vaultApi";
-import type { VaultItem } from "../types";
+import type { VaultFilter, VaultFolder, VaultItem } from "../types";
 
 const AUTO_LOCK_MS = 3 * 60 * 1000; // 3 minutes inactivity
 const MAX_SESSION_MS = 5 * 60 * 1000; // 5 minutes hard cap
@@ -31,6 +32,9 @@ interface VaultContextValue {
   status: "checking" | "setup" | "locked" | "unlocked";
   vaultId: string | null;
   credentials: VaultItem[];
+  folders: VaultFolder[];
+  activeFilter: VaultFilter;
+  setActiveFilter: (filter: VaultFilter) => void;
   loadingCredentials: boolean;
   error: string | null;
   unlockExpiresAt: number | null;
@@ -44,6 +48,10 @@ interface VaultContextValue {
   updateCredential: (id: string, input: PlainVaultPayload) => Promise<void>;
   deleteCredential: (id: string) => Promise<void>;
   reloadCredentials: () => Promise<void>;
+
+  loadFolders: () => Promise<void>;
+  createFolder: (name: string) => Promise<VaultFolder>;
+  deleteFolder: (id: string) => Promise<void>;
 }
 
 const VaultContext = createContext<VaultContextValue | null>(null);
@@ -58,6 +66,8 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<VaultContextValue["status"]>("checking");
   const [vaultId, setVaultId] = useState<string | null>(null);
   const [credentials, setCredentials] = useState<VaultItem[]>([]);
+  const [folders, setFolders] = useState<VaultFolder[]>([]);
+  const [activeFilter, setActiveFilter] = useState<VaultFilter>({ kind: "all" });
   const [loadingCredentials, setLoadingCredentials] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [unlockExpiresAt, setUnlockExpiresAt] = useState<number | null>(null);
@@ -71,6 +81,8 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     hardCapRef.current = null;
     setVaultId(null);
     setCredentials([]);
+    setFolders([]);
+    setActiveFilter({ kind: "all" });
     setUnlockExpiresAt(null);
     setCsrfToken(null);
 
@@ -132,6 +144,30 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const loadFolders = useCallback(async () => {
+    try {
+      const list = await folderApi.list();
+      setFolders(list);
+    } catch {
+      // Best-effort folder loading
+    }
+  }, []);
+
+  const createFolder = useCallback(async (name: string) => {
+    const newFolder = await folderApi.create(name);
+    setFolders((prev) => [...prev, newFolder].sort((a, b) => a.name.localeCompare(b.name)));
+    return newFolder;
+  }, []);
+
+  const deleteFolder = useCallback(async (id: string) => {
+    await folderApi.remove(id);
+    setFolders((prev) => prev.filter((f) => f.id !== id));
+    setActiveFilter((prev) => (prev.kind === "folder" && prev.folderId === id ? { kind: "all" } : prev));
+    setCredentials((prev) =>
+      prev.map((c) => (c.folderId === id ? { ...c, folderId: null } : c))
+    );
+  }, []);
+
   const finalizeUnlock = useCallback(
     async (
       vaultIdValue: string,
@@ -159,9 +195,9 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       sessionStorage.setItem("vault_salt", saltB64);
       sessionStorage.setItem("vault_enc_version", encryptionVersion.toString());
 
-      await decryptAll(vaultIdValue, key);
+      await Promise.all([decryptAll(vaultIdValue, key), loadFolders()]);
     },
-    [decryptAll]
+    [decryptAll, loadFolders]
   );
 
   const setupVault = useCallback(
@@ -257,6 +293,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       await vaultItemApi.create({
         id: newId,
         type: input.type,
+        folderId: input.folderId ?? null,
         ciphertext: enc.ciphertext,
         nonce: enc.nonce,
         encryptionVersion: 1,
@@ -280,6 +317,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         existing.encryptionVersion
       );
       await vaultItemApi.update(id, {
+        folderId: input.folderId !== undefined ? input.folderId : existing.folderId,
         ciphertext: enc.ciphertext,
         nonce: enc.nonce,
         encryptionVersion: existing.encryptionVersion,
@@ -330,9 +368,9 @@ export function VaultProvider({ children }: { children: ReactNode }) {
           lastActivityRef.current = Date.now();
           hardCapRef.current = Date.now() + MAX_SESSION_MS;
 
-          // 4. Verify backend session is alive by fetching credentials.
+          // 4. Verify backend session is alive by fetching credentials and folders.
           //    Throws ApiError(401) if the cookie is missing or expired.
-          await decryptAll(savedId, key);
+          await Promise.all([decryptAll(savedId, key), loadFolders()]);
 
           // 5. Backend confirmed healthy — now commit the unlocked state.
           setVaultId(savedId);
@@ -358,7 +396,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     };
 
     void initSession();
-  }, [decryptAll, refreshStatus]);
+  }, [decryptAll, loadFolders, refreshStatus]);
 
   useEffect(() => {
     if (status !== "unlocked") return;
@@ -386,6 +424,9 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       status,
       vaultId,
       credentials,
+      folders,
+      activeFilter,
+      setActiveFilter,
       loadingCredentials,
       error,
       unlockExpiresAt,
@@ -397,11 +438,17 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       updateCredential,
       deleteCredential,
       reloadCredentials,
+      loadFolders,
+      createFolder,
+      deleteFolder,
     }),
     [
       status,
       vaultId,
       credentials,
+      folders,
+      activeFilter,
+      setActiveFilter,
       loadingCredentials,
       error,
       unlockExpiresAt,
@@ -413,6 +460,9 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       updateCredential,
       deleteCredential,
       reloadCredentials,
+      loadFolders,
+      createFolder,
+      deleteFolder,
     ]
   );
 
