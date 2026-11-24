@@ -3,6 +3,7 @@ import { Dialog } from "../../components/ui/Dialog";
 import { Button } from "../../components/ui/Button";
 import { Input, PasswordInput } from "../../components/ui/Input";
 import { GeneratorPanel } from "../generator/GeneratorPanel.tsx";
+import { useVault } from "../../contexts/VaultContext";
 import type { PlainVaultPayload } from "../../crypto/vaultKey";
 import type { VaultLoginItem } from "../../types";
 
@@ -19,11 +20,13 @@ interface FormState {
   password: string;
   url: string;
   notes: string;
+  folderId: string;
 }
 
-const emptyState: FormState = { title: "", username: "", password: "", url: "", notes: "" };
+const emptyState: FormState = { title: "", username: "", password: "", url: "", notes: "", folderId: "" };
 
 export function CredentialFormDialog({ open, onClose, onSubmit, initial }: CredentialFormDialogProps) {
+  const { folders, activeFilter } = useVault();
   const [form, setForm] = useState<FormState>(emptyState);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,12 +41,16 @@ export function CredentialFormDialog({ open, onClose, onSubmit, initial }: Crede
         password: initial.password,
         url: initial.url ?? "",
         notes: initial.notes ?? "",
+        folderId: initial.folderId ?? "",
       });
     } else {
-      setForm(emptyState);
+      setForm({
+        ...emptyState,
+        folderId: activeFilter.kind === "folder" ? activeFilter.folderId : "",
+      });
     }
     setError(null);
-  }, [open, initial]);
+  }, [open, initial, activeFilter]);
 
   // Reset the generator panel when the dialog closes so it
   // does not reopen pre-expanded.
@@ -55,7 +62,9 @@ export function CredentialFormDialog({ open, onClose, onSubmit, initial }: Crede
     }
   }, [open]);
 
-  const update = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const update = (key: keyof FormState) => (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
   };
 
@@ -74,6 +83,7 @@ export function CredentialFormDialog({ open, onClose, onSubmit, initial }: Crede
         password: form.password,
         url: form.url.trim() || undefined,
         notes: form.notes.trim() || undefined,
+        folderId: form.folderId || null,
       });
       onClose();
     } catch (err) {
@@ -156,6 +166,26 @@ export function CredentialFormDialog({ open, onClose, onSubmit, initial }: Crede
           type="text"
           inputMode="url"
         />
+
+        <div>
+          <label htmlFor="credential-folder" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+            Folder
+          </label>
+          <select
+            id="credential-folder"
+            value={form.folderId}
+            onChange={update("folderId")}
+            className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          >
+            <option value="">(No folder)</option>
+            {folders.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div>
           <label htmlFor="notes" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
             Notes

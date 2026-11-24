@@ -5,7 +5,7 @@
 
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CreditCard, KeyRound, Lock, Search, ShieldCheck, X } from "lucide-react";
+import { CreditCard, KeyRound, Lock, Menu, Search, ShieldCheck, X } from "lucide-react";
 import { VaultLayout } from "../layouts/VaultLayout";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -26,6 +26,7 @@ import type { PlainVaultPayload } from "../crypto/vaultKey";
  */
 export function DashboardPage() {
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const {
     credentials,
     folders,
@@ -139,18 +140,28 @@ export function DashboardPage() {
   };
 
   return (
-    <VaultLayout>
+    <VaultLayout sidebarOpen={sidebarOpen} onCloseSidebar={() => setSidebarOpen(false)}>
       <div className="flex flex-col min-h-full">
         {/* Top header */}
         <div className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 p-6 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-                {headerTitle}
-              </h1>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                {visible.length} {visible.length === 1 ? "item" : "items"} · encrypted locally
-              </p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(true)}
+                className="md:hidden rounded-lg border border-slate-200 bg-white p-2 text-slate-600 shadow-2xs hover:bg-slate-100 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+                aria-label="Open sidebar"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                  {headerTitle}
+                </h1>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  {visible.length} {visible.length === 1 ? "item" : "items"} · encrypted locally
+                </p>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <NewItemMenu onNewLogin={openAddLogin} onNewCard={openAddCard} />

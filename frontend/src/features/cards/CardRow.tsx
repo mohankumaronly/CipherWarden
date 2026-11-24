@@ -9,6 +9,7 @@ import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { useToast } from "../../components/ui/Toast";
 import type { VaultCardItem } from "../../types";
+import { formatRelativeTime } from "../../utils/format";
 
 interface CardRowProps {
   card: VaultCardItem;
@@ -82,7 +83,7 @@ export function CardRow({ card, onEdit, onDelete }: CardRowProps) {
           <button
             type="button"
             onClick={() => setRevealed((v) => !v)}
-            className="rounded p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+            className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
             aria-label={revealed ? "Hide card number" : "Show card number"}
           >
             {revealed ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -90,7 +91,7 @@ export function CardRow({ card, onEdit, onDelete }: CardRowProps) {
           <button
             type="button"
             onClick={copyCardNumber}
-            className="rounded p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+            className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
             aria-label="Copy card number"
           >
             {copied ? (
@@ -100,11 +101,16 @@ export function CardRow({ card, onEdit, onDelete }: CardRowProps) {
             )}
           </button>
         </div>
+      </div>
 
-        <div className="flex items-center gap-1">
+      <div className="flex items-center justify-between gap-2 sm:justify-end">
+        <Badge tone="slate" className="hidden shrink-0 md:inline-flex">
+          {formatRelativeTime(card.updatedAt)}
+        </Badge>
+        <div className="flex gap-1">
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
             onClick={() => onEdit(card)}
             aria-label="Edit card"
           >
@@ -112,11 +118,12 @@ export function CardRow({ card, onEdit, onDelete }: CardRowProps) {
           </Button>
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
             onClick={() => onDelete(card)}
             aria-label="Delete card"
+            className="text-slate-400 hover:text-red-600"
           >
-            <Trash2 className="h-4 w-4 text-red-500" />
+            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </div>
