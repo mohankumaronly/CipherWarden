@@ -109,8 +109,8 @@ export function VaultTable({ items, onEdit, onDelete }: VaultTableProps) {
   return (
     <div>
       {/* Desktop Data Table */}
-      <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
-        <table className="min-w-full divide-y divide-slate-200 text-left dark:divide-slate-800">
+      <div className="hidden md:block w-full overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
+        <table className="w-full divide-y divide-slate-200 text-left text-sm dark:divide-slate-800">
           <thead className="bg-slate-50/75 dark:bg-slate-950/50">
             <tr>
               <th scope="col" className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -119,10 +119,10 @@ export function VaultTable({ items, onEdit, onDelete }: VaultTableProps) {
               <th scope="col" className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Username / Owner
               </th>
-              <th scope="col" className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <th scope="col" className="w-28 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">
                 Updated
               </th>
-              <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <th scope="col" className="w-28 px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">
                 Actions
               </th>
             </tr>
@@ -182,12 +182,12 @@ export function VaultTable({ items, onEdit, onDelete }: VaultTableProps) {
                   </td>
 
                   {/* Updated Column */}
-                  <td className="px-4 py-3.5 text-xs text-slate-400 dark:text-slate-500 whitespace-nowrap">
+                  <td className="w-28 px-4 py-3.5 text-xs text-slate-400 dark:text-slate-500 whitespace-nowrap">
                     {formatRelativeTime(item.updatedAt)}
                   </td>
 
                   {/* Actions Column */}
-                  <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                  <td className="w-28 px-4 py-3.5 text-right whitespace-nowrap">
                     <div className="flex items-center justify-end gap-1">
                       <Button
                         variant="ghost"

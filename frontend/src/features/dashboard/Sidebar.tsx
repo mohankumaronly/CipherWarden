@@ -264,6 +264,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </div>
         </div>
       </div>
+    </aside>
 
       {/* New Folder Modal */}
       <Dialog
@@ -334,7 +335,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           ?
         </p>
       </Dialog>
-    </aside>
-  </>
+    </>
   );
 }

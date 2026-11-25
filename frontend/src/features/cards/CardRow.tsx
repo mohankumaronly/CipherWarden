@@ -103,11 +103,11 @@ export function CardRow({ card, onEdit, onDelete }: CardRowProps) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-2 sm:justify-end">
+      <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
         <Badge tone="slate" className="hidden shrink-0 md:inline-flex">
           {formatRelativeTime(card.updatedAt)}
         </Badge>
-        <div className="flex gap-1">
+        <div className="flex gap-1 ml-auto">
           <Button
             variant="ghost"
             size="icon"
