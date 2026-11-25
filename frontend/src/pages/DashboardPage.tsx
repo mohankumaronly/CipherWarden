@@ -196,14 +196,14 @@ export function DashboardPage() {
         </div>
 
         {/* Content list area */}
-        <div className="flex-1 p-6 w-full min-w-0">
+        <div className="flex-1 w-full min-w-0">
           {loadingCredentials ? (
             <div className="flex flex-col items-center gap-3 py-20 text-slate-400">
               <Spinner />
               <p className="text-sm">Decrypting your vault…</p>
             </div>
           ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/50 px-6 py-20 text-center dark:border-slate-700 dark:bg-slate-900/50">
+            <div className="m-6 flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/50 px-6 py-20 text-center dark:border-slate-700 dark:bg-slate-900/50">
               <div className="grid h-14 w-14 place-items-center rounded-2xl bg-brand-50 text-brand-600 dark:bg-brand-900/30">
                 {query ? (
                   <Search className="h-7 w-7" />
@@ -254,7 +254,7 @@ export function DashboardPage() {
             />
           )}
 
-          <div className="mt-10 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+          <div className="m-6 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
             <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-500" />
             All entries are encrypted with AES-256-GCM in your browser. The server only ever sees ciphertext.
           </div>

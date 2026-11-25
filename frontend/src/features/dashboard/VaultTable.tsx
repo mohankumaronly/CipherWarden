@@ -113,17 +113,17 @@ export function VaultTable({ items, onEdit, onDelete }: VaultTableProps) {
   return (
     <div>
       {/* Desktop Data Table */}
-      <div className="hidden md:block w-full overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
-        <table className="w-full divide-y divide-slate-200 text-left text-sm dark:divide-slate-800">
+      <div className="hidden md:block w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
+        <table className="w-full table-fixed divide-y divide-slate-200 text-left text-sm dark:divide-slate-800">
           <thead className="bg-slate-50/75 dark:bg-slate-950/50">
             <tr>
-              <th scope="col" className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <th scope="col" className="w-1/3 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Name
               </th>
-              <th scope="col" className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <th scope="col" className="w-1/3 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Username / Owner
               </th>
-              <th scope="col" className="w-28 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">
+              <th scope="col" className="w-32 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">
                 Updated
               </th>
               <th scope="col" className="w-48 px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">
@@ -143,16 +143,16 @@ export function VaultTable({ items, onEdit, onDelete }: VaultTableProps) {
                   className="group transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/50"
                 >
                   {/* Name Column */}
-                  <td className="px-4 py-3.5">
-                    <div className="flex items-center gap-3">
+                  <td className="px-4 py-3.5 truncate">
+                    <div className="flex items-center gap-3 min-w-0">
                       <TableItemAvatar item={item} />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 min-w-0">
                           <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">
                             {item.title}
                           </span>
                           {!isLogin && (
-                            <Badge tone="slate">
+                            <Badge tone="slate" className="shrink-0">
                               Card
                             </Badge>
                           )}
@@ -161,7 +161,7 @@ export function VaultTable({ items, onEdit, onDelete }: VaultTableProps) {
                               href={item.url.startsWith("http") ? item.url : `https://${item.url}`}
                               target="_blank"
                               rel="noreferrer"
-                              className="text-slate-400 hover:text-brand-600 transition-colors"
+                              className="text-slate-400 hover:text-brand-600 transition-colors shrink-0"
                               aria-label="Open website"
                               onClick={(e) => e.stopPropagation()}
                             >
@@ -179,14 +179,14 @@ export function VaultTable({ items, onEdit, onDelete }: VaultTableProps) {
                   </td>
 
                   {/* Username / Owner Column */}
-                  <td className="px-4 py-3.5 text-sm text-slate-600 dark:text-slate-300">
-                    <span className="truncate block max-w-xs">
+                  <td className="px-4 py-3.5 text-sm text-slate-600 dark:text-slate-300 truncate">
+                    <span className="truncate block">
                       {primarySubtitle || "—"}
                     </span>
                   </td>
 
                   {/* Updated Column */}
-                  <td className="w-28 px-4 py-3.5 text-xs text-slate-400 dark:text-slate-500 whitespace-nowrap">
+                  <td className="w-32 px-4 py-3.5 text-xs text-slate-400 dark:text-slate-500 whitespace-nowrap">
                     {formatRelativeTime(item.updatedAt)}
                   </td>
 
@@ -250,7 +250,7 @@ export function VaultTable({ items, onEdit, onDelete }: VaultTableProps) {
       </div>
 
       {/* Mobile Stacked List Fallback */}
-      <div className="md:hidden space-y-3">
+      <div className="md:hidden space-y-3 p-4">
         {items.map((item) =>
           item.type === "LOGIN" ? (
             <CredentialRow
