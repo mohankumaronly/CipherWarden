@@ -12,6 +12,7 @@ import {
   Layers,
   Star,
   Trash2,
+  X,
 } from "lucide-react";
 import { Logo } from "../../components/ui/Logo";
 import { Button } from "../../components/ui/Button";
@@ -19,9 +20,14 @@ import { Dialog } from "../../components/ui/Dialog";
 import { Input } from "../../components/ui/Input";
 import { useToast } from "../../components/ui/Toast";
 import { useVault } from "../../contexts/VaultContext";
-import type { VaultFolder } from "../../types";
+import type { VaultFolder, VaultFilter } from "../../types";
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const {
     credentials,
     folders,
@@ -41,6 +47,11 @@ export function Sidebar() {
   const totalLogins = credentials.filter((c) => c.type === "LOGIN").length;
   const totalCards = credentials.filter((c) => c.type === "CARD").length;
 
+  const handleSelectFilter = (filter: VaultFilter) => {
+    setActiveFilter(filter);
+    onClose();
+  };
+
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
     const trimmed = folderName.trim();
@@ -51,7 +62,7 @@ export function Sidebar() {
       toast(`Folder "${created.name}" created`, "success");
       setFolderName("");
       setCreateModalOpen(false);
-      setActiveFilter({ kind: "folder", folderId: created.id });
+      handleSelectFilter({ kind: "folder", folderId: created.id });
     } catch (err) {
       toast(err instanceof Error ? err.message : "Failed to create folder", "error");
     } finally {
@@ -81,13 +92,36 @@ export function Sidebar() {
     }`;
 
   return (
-    <aside className="flex h-full w-64 shrink-0 flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-      {/* Top branding */}
-      <div className="flex h-16 shrink-0 items-center border-b border-slate-200 px-5 dark:border-slate-800">
-        <Logo />
-      </div>
+    <>
+      {/* Mobile backdrop */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 md:hidden transition-opacity"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+      {/* Sidebar drawer / static column */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex h-full w-64 shrink-0 flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 transform transition-transform duration-200 ease-in-out md:static md:translate-x-0 ${
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {/* Top branding */}
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-5 dark:border-slate-800">
+          <Logo />
+          <button
+            type="button"
+            onClick={onClose}
+            className="md:hidden rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+            aria-label="Close sidebar"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {/* Main filters */}
         <div>
           <p className="px-3 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
@@ -95,7 +129,7 @@ export function Sidebar() {
           </p>
           <div className="mt-2 space-y-1">
             <button
-              onClick={() => setActiveFilter({ kind: "all" })}
+              onClick={() => handleSelectFilter({ kind: "all" })}
               className={navItemClass(activeFilter.kind === "all")}
             >
               <div className="flex items-center gap-2.5">
@@ -108,7 +142,7 @@ export function Sidebar() {
             </button>
 
             <button
-              onClick={() => setActiveFilter({ kind: "favorites" })}
+              onClick={() => handleSelectFilter({ kind: "favorites" })}
               className={navItemClass(activeFilter.kind === "favorites")}
             >
               <div className="flex items-center gap-2.5">
@@ -127,7 +161,7 @@ export function Sidebar() {
           </p>
           <div className="mt-2 space-y-1">
             <button
-              onClick={() => setActiveFilter({ kind: "type", type: "LOGIN" })}
+              onClick={() => handleSelectFilter({ kind: "type", type: "LOGIN" })}
               className={navItemClass(
                 activeFilter.kind === "type" && activeFilter.type === "LOGIN"
               )}
@@ -142,7 +176,7 @@ export function Sidebar() {
             </button>
 
             <button
-              onClick={() => setActiveFilter({ kind: "type", type: "CARD" })}
+              onClick={() => handleSelectFilter({ kind: "type", type: "CARD" })}
               className={navItemClass(
                 activeFilter.kind === "type" && activeFilter.type === "CARD"
               )}
@@ -193,7 +227,7 @@ export function Sidebar() {
                   >
                     <button
                       onClick={() =>
-                        setActiveFilter({ kind: "folder", folderId: folder.id })
+                        handleSelectFilter({ kind: "folder", folderId: folder.id })
                       }
                       className="flex flex-1 items-center gap-2.5 truncate text-left"
                     >
@@ -301,5 +335,6 @@ export function Sidebar() {
         </p>
       </Dialog>
     </aside>
+  </>
   );
 }
