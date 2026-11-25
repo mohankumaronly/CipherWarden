@@ -1,72 +1,112 @@
-# 🔐 My-Vault
+# 🔐 CipherWarden
 
-A **zero-knowledge password manager** where the server never sees your master key or plaintext secrets. Your vault is encrypted in the browser with AES-256-GCM; the backend only ever stores ciphertext, nonces, and a wrapped data-encryption key (DEK).
+A zero-knowledge, Bitwarden-style password manager built with React, Express, and WebCrypto.
 
-- **Master-key only** — no email, no account recovery. Your key *is* your identity.
-- **Argon2id KDF** — derives the key-encryption key (KEK) and an auth verifier client-side.
-- **AES-256-GCM** — every credential is encrypted with the DEK, bound with authenticated associated data (AAD).
-- **Optimistic concurrency** — every credential carries a `recordVersion`; stale writes get a `409`.
-- **Session-scoped** — the DEK lives in browser memory only, auto-locks on inactivity.
-- **Professional SaaS UI** — a polished, responsive React frontend.
+[![Version](https://img.shields.io/badge/version-v2.0.0-blue.svg)](https://github.com/mohankumaronly/CipherWarden)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node](https://img.shields.io/badge/node-%3E%3D20-green.svg)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
+
+---
+
+## Overview
+
+CipherWarden is an end-to-end encrypted, self-hosted password and credential vault designed with a strict zero-knowledge architecture. All sensitive data is encrypted client-side in the browser using the Web Cryptography API before any payload reaches the network. **The server never sees your master key, your DEK, or your plaintext data.**
+
+---
+
+## Features (Version 2.0)
+
+- **Multi-Item Vault:** Store both Logins and Payment Cards in a unified, strongly typed vault schema.
+- **Organization:** Custom Folders, Favorites, and Type filters (Login/Card).
+- **Bitwarden-Style UI:** Full-width data table with a responsive collapsible sidebar for mobile.
+- **Password Generator:** Built-in CSPRNG generator (Password, Passphrase, PIN) with rejection sampling. See the [Password Generator documentation](frontend/src/features/generator/README.md) for configuration and entropy details.
+- **Privacy-First Favicons:** Backend proxy fetches site icons without leaking user IPs to third parties.
+- **Session Security:** HttpOnly cookies, CSRF protection, and auto-lock on inactivity.
 
 ---
 
 ## Architecture
 
-```
-Browser (React + WebCrypto)                Server (Express 5 + Prisma)
-──────────────────────────────            ─────────────────────────────
-master key ──Argon2id──► KEK + verifier
-KEK ──AES-GCM──► wraps DEK                 stores: salt, wrapped DEK, nonce,
-auth verifier ────────────────────────────► verifier hash (argon2)
-DEK ──AES-GCM──► ciphertext + nonce ──────► ciphertext rows + recordVersion
+```mermaid
+flowchart LR
+    subgraph Browser ["Client Browser (WebCrypto, VaultContext)"]
+        direction TB
+        UI["Bitwarden UI / VaultContext"]
+        Crypto["Argon2id (KEK) + AES-256-GCM (DEK)"]
+        UI <--> Crypto
+    end
+
+    subgraph Backend ["Express Server (VaultItem API, Favicon Proxy)"]
+        direction TB
+        API["VaultItem API (/credentials)"]
+        FolderAPI["Folder API (/folders)"]
+        Favicon["Favicon Proxy (/favicon)"]
+        Session["Session & CSRF Middleware"]
+    end
+
+    subgraph Database ["PostgreSQL (Prisma ORM)"]
+        direction TB
+        DB[("vault_items, folders, sessions, vaults")]
+    end
+
+    Crypto <--"Encrypted Ciphertext & Nonce"--> API
+    API <--> DB
+    FolderAPI <--> DB
+    Session <--> DB
 ```
 
-**The server never receives the master key, the KEK, or the DEK.** Setup sends only the public salt, the wrapped DEK, the wrap nonce, and the auth verifier. Unlock sends only the auth verifier to prove key possession; decryption of the DEK happens locally.
+The AAD for AES-GCM binds every item to `vaultId + itemId + encryptionVersion`. Ciphertext is not portable between items or vaults.
 
 ---
 
 ## Tech Stack
 
-| Layer     | Technology |
-|-----------|-----------|
-| Frontend  | React 19, Vite, Tailwind CSS v4, react-router-dom, lucide-react, hash-wasm, WebCrypto |
-| Backend   | Node.js 24, Express 5, TypeScript, Zod, Helmet, express-rate-limit |
-| Database  | PostgreSQL (Neon-compatible) via Prisma ORM |
-| Crypto    | Argon2id (hash-wasm), AES-256-GCM (WebCrypto), argon2 (server verifier hash) |
+| Layer | Technology |
+| :--- | :--- |
+| **Frontend** | React 19, Vite, Tailwind CSS, TypeScript, React Router, Lucide React, Web Cryptography API |
+| **Backend** | Node.js 24 (Node >=20), Express 5, TypeScript, Prisma ORM, Zod, Helmet, express-rate-limit |
+| **Database** | PostgreSQL (Neon serverless compatible) via Prisma ORM |
+| **Crypto** | Argon2id (`hash-wasm`), AES-256-GCM (`crypto.subtle`), server-side Argon2 verifier hashing |
+| **Tooling** | Oxlint, Jest / Node.js test runner, TSX, Postman |
 
 ---
 
 ## Project Structure
 
-```
+```text
 CipherWarden/
 ├── backend/
-│   ├── prisma/schema.prisma        # Vault, Credential, Session, AuditLog
-│   ├── scripts/
-│   │   └── generate-test-verifier.js  # produce a valid authVerifier + envelope
+│   ├── prisma/
+│   │   ├── migrations/              # Prisma schema migrations
+│   │   └── schema.prisma            # Vault, VaultItem, Folder, Session, AuditLog models
 │   └── src/
-│       ├── config/                 # env validation, prisma client
-│       ├── common/                 # errors, utils, middleware
+│       ├── common/                  # Error handling, response utilities, middleware
+│       ├── config/                  # Environment validation & Prisma client instance
 │       ├── modules/
-│       │   ├── session/            # session repo + service
-│       │   ├── audit/              # audit logging
-│       │   ├── vault/              # setup / unlock / lock / key-envelope
-│       │   └── credentials/        # CRUD with optimistic concurrency
-│       ├── app.ts                  # express app + middleware chain
-│       └── server.ts               # bootstrap
+│       │   ├── audit/               # Security audit logging
+│       │   ├── favicon/             # Privacy-preserving favicon proxy
+│       │   ├── folders/             # Folder CRUD operations
+│       │   ├── items/               # Unified VaultItem CRUD (Logins & Cards)
+│       │   ├── session/             # Session store & lifecycle management
+│       │   └── vault/               # Vault setup, unlock, lock & key-envelope rotation
+│       ├── app.ts                   # Express application setup & middleware pipeline
+│       └── server.ts                # Bootstrap & database connectivity check
 ├── frontend/
 │   └── src/
-│       ├── crypto/                 # encoding, argon2, aes, vaultKey
-│       ├── services/               # api, vaultApi, credentialApi
-│       ├── contexts/               # VaultContext (DEK in memory)
-│       ├── components/ui/          # Button, Input, Card, Dialog, Toast…
-│       ├── features/credentials/   # form dialog + row
-│       ├── layouts/                # MarketingLayout, AppLayout
-│       └── pages/                  # Landing, Setup, Unlock, Dashboard
-├── Documentations/
-│   └── Application documentation.txt
-├── My-Vault.postman_collection.json
+│       ├── components/ui/           # Common UI elements (Button, Input, Dialog, Toast, Spinner, Logo)
+│       ├── contexts/
+│       │   └── VaultContext.tsx     # In-memory DEK state, favorites toggle & folder assignment
+│       ├── crypto/                  # WebCrypto AES-GCM, Argon2id KDF & key-wrapping helpers
+│       ├── features/
+│       │   ├── cards/               # CardFormDialog, CardRow
+│       │   ├── credentials/         # CredentialFormDialog, CredentialRow
+│       │   ├── dashboard/           # Sidebar, VaultTable, NewItemMenu, QuickFolderMenu
+│       │   └── generator/           # Password, Passphrase & PIN controls and README
+│       ├── layouts/                 # AppLayout, VaultLayout, MarketingLayout
+│       ├── pages/                   # LandingPage, SetupVaultPage, UnlockVaultPage, DashboardPage
+│       └── services/                # API clients (api, vaultApi, folderApi, vaultItemApi)
+├── CipherWarden.postman_collection.json
 └── README.md
 ```
 
@@ -75,65 +115,63 @@ CipherWarden/
 ## Quick Start (Local Development)
 
 ### 1. Prerequisites
-- Node.js **≥ 20** (tested on 24)
-- A PostgreSQL database (local or [Neon](https://neon.tech) free tier)
+- Node.js **>= 20** (tested on Node 22 and 24)
+- PostgreSQL database (local instance or [Neon](https://neon.tech))
+- npm or pnpm
 
-### 2. Backend
+### 2. Backend Setup
+1. Navigate to the backend directory and install dependencies:
+   ```bash
+   cd backend
+   npm install
+   ```
+2. Configure your environment file:
+   ```bash
+   cp .env.example .env
+   ```
+   Ensure `.env` contains:
+   ```env
+   NODE_ENV=development
+   PORT=5000
+   DATABASE_URL="postgresql://user:password@host:5432/cipherwarden?sslmode=require"
+   CLIENT_ORIGIN=http://localhost:5173
+   SESSION_SECRET=your_64_byte_hex_session_secret
+   SESSION_DURATION_MINUTES=30
+   COOKIE_NAME=CipherWarden
+   COOKIE_SECURE=false
+   COOKIE_SAME_SITE=lax
+   TEST_MODE=true
+   TEST_API_KEY=test_sk_your_random_key_here
+   MASTER_KEY=YourSelfHostedMasterKeyHere
+   ```
+3. Run migrations and generate the Prisma client:
+   ```bash
+   npx prisma generate
+   npx prisma migrate dev
+   ```
+4. Start the backend development server:
+   ```bash
+   npm run dev
+   ```
+   The backend API will run at `http://localhost:5000/api/v1`.
 
-```bash
-cd backend
-npm install
-cp .env.example .env      # then edit .env (see below)
-npx prisma generate
-npx prisma db push
-npm run dev               # http://localhost:5000
-```
+### 3. Frontend Setup
+1. Navigate to the frontend directory and install dependencies:
+   ```bash
+   cd ../frontend
+   npm install
+   ```
+2. Configure environment settings in `frontend/.env`:
+   ```env
+   VITE_API_BASE_URL=http://localhost:5000/api/v1
+   ```
+3. Start the Vite development server:
+   ```bash
+   npm run dev
+   ```
+   Open **http://localhost:5173** in your browser.
 
-Required `.env` values:
-
-```env
-NODE_ENV=development
-PORT=5000
-DATABASE_URL=postgresql://user:pass@host:5432/my_vault
-CLIENT_ORIGIN=http://localhost:5173
-SESSION_SECRET=<64-byte hex>
-SESSION_DURATION_MINUTES=30
-COOKIE_NAME=my_vault_session
-COOKIE_SECURE=false
-COOKIE_SAME_SITE=strict
-TEST_MODE=true
-TEST_API_KEY=test_sk_<random hex>
-```
-
-Generate a session secret:
-
-```bash
-node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
-```
-
-### 3. Frontend
-
-```bash
-cd frontend
-npm install
-cp .env.examaple .env     # then edit .env
-npm run dev               # http://localhost:5173
-```
-
-`frontend/.env`:
-
-```env
-VITE_API_BASE_URL=http://localhost:5000/api/v1
-VITE_APP_NAME=My-Vault
-VITE_GITHUB_URL=https://github.com/
-VITE_TEST_API_KEY=test_sk_<same as backend TEST_API_KEY>
-```
-
-> ⚠️ The frontend must run on the port listed in the backend's `CLIENT_ORIGIN` (default `5173`) or CORS will block requests.
-
-### 4. First use
-
-Open **http://localhost:5173**. With no vault present you'll be redirected to `/setup`. Choose a strong master key — **it cannot be recovered**. After setup you land on the dashboard where you can add, reveal, copy, edit and delete credentials.
+> **Note on CORS:** The frontend must run on the exact port specified in the backend's `CLIENT_ORIGIN` (default `http://localhost:5173`) or CORS will block requests.
 
 ---
 
@@ -141,76 +179,62 @@ Open **http://localhost:5173**. With no vault present you'll be redirected to `/
 
 Base URL: `/api/v1`
 
-| Method | Path                     | Auth     | Description |
-|--------|--------------------------|----------|-------------|
-| GET    | `/health`                | —        | Liveness probe |
-| GET    | `/vault/metadata`        | —        | Public KDF + wrapped-key envelope (404 if no vault) |
-| POST   | `/vault/setup`           | —        | Create the vault (409 if exists) |
-| POST   | `/vault/unlock`          | verifier | Prove key possession, start session |
-| POST   | `/vault/lock`            | session  | Destroy the session |
-| PUT    | `/vault/key-envelope`    | session  | Rotate the wrapped DEK |
-| GET    | `/csrf`                  | session  | Fetch a CSRF token |
-| GET    | `/credentials`           | session  | List credentials (ciphertext) |
-| POST   | `/credentials`           | session  | Create a credential |
-| GET    | `/credentials/:id`       | session  | Fetch one credential |
-| PUT    | `/credentials/:id`       | session  | Update (requires `expectedRecordVersion`) |
-| DELETE | `/credentials/:id`       | session  | Delete a credential |
+| Module | Method | Endpoint | Auth | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| **Vault** | `GET` | `/vault/metadata` | Public | Returns KDF parameters, salt, and wrapped key envelope |
+| **Vault** | `POST` | `/vault/setup` | Public | Initializes vault configuration and master key verifier |
+| **Vault** | `POST` | `/vault/unlock` | Verifier | Validates auth verifier proof and establishes HTTP session cookie |
+| **Vault** | `POST` | `/vault/lock` | Session | Destroys current session and clears server session token |
+| **Vault** | `PUT` | `/vault/key-envelope` | Session | Rotates wrapped DEK envelope |
+| **Vault Items** | `GET` | `/credentials` | Session | Lists all encrypted vault items for the authenticated vault |
+| **Vault Items** | `POST` | `/credentials` | Session | Creates a new encrypted vault item (LOGIN or CARD) |
+| **Vault Items** | `GET` | `/credentials/:id` | Session | Fetches a single encrypted vault item by ID |
+| **Vault Items** | `PUT` | `/credentials/:id` | Session | Updates item ciphertext or metadata (optimistic concurrency via `expectedRecordVersion`) |
+| **Vault Items** | `DELETE` | `/credentials/:id` | Session | Permanently deletes a vault item |
+| **Folders** | `GET` | `/folders` | Session | Lists all user-created organizational folders |
+| **Folders** | `POST` | `/folders` | Session | Creates a new folder |
+| **Folders** | `DELETE` | `/folders/:id` | Session | Deletes a folder (items in the folder revert to unassigned) |
+| **Favicon Proxy**| `GET` | `/favicon?domain=example.com` | Public | Proxies and caches 64px website favicons without leaking user IP |
+| **Security** | `GET` | `/csrf` | Session | Returns CSRF token for the active session |
+| **Health** | `GET` | `/health` | Public | Liveness probe returning status and uptime |
 
-### Optimistic concurrency
-
-`PUT /credentials/:id` requires `expectedRecordVersion`. If it doesn't match the stored `recordVersion`, the server responds `409 STALE_RECORD` and the client must refetch before retrying.
-
----
-
-## Testing with Postman
-
-A ready-to-run collection ships at the repo root: **`My-Vault.postman_collection.json`**.
-
-### Out-of-the-box
-A vault has already been provisioned on the dev database using the values baked into the collection variables, so you can run requests in order immediately:
-
-1. Import `My-Vault.postman_collection.json`.
-2. Confirm `testApiKey` matches `backend/.env`.
-3. Run **00 Health → 01 Metadata → 03 Unlock → 05 Create → 06 List → 07 Get → 08 Update → 09 Delete → 10 Lock**.
-
-> With `TEST_MODE=true`, the `X-Test-API-Key` header bypasses CSRF and relaxes rate limits. Request `02 Setup` returns `409` because a vault already exists — this is expected.
-
-### From a fresh database
-1. Clear the vault (drop the row) or point `DATABASE_URL` at a new database.
-2. In `backend/`, run:
-   ```bash
-   node scripts/generate-test-verifier.js
-   ```
-3. Copy the printed `authVerifier`, `salt`, `wrappedVaultKey` and `keyNonce` into the collection variables.
-4. Run **02 Setup** (expect `201` + `csrfToken`), then the remaining requests.
+*(Note: The vault items endpoint path remains `/credentials` for backward compatibility, while the underlying data model and wire schema represent the polymorphic `VaultItem`).*
 
 ---
 
-## Production Deployment
+## Testing
 
-1. Set `NODE_ENV=production`, `COOKIE_SECURE=true`, `TEST_MODE=false`, and remove `TEST_API_KEY`.
-2. Build both apps:
-   ```bash
-   cd backend  && npm run build && npm start
-   cd frontend && npm run build            # outputs dist/
-   ```
-3. Serve `frontend/dist` from any static host / CDN and set `CLIENT_ORIGIN` to its public URL.
-4. Run `npx prisma migrate deploy` against the production database.
-5. Terminate TLS in front of the API — the master key protects data at rest, but TLS protects the session in transit.
+### Unit & Security Test Suite
+CipherWarden includes test suites for client-side cryptographic primitives and CSPRNG generation:
+```bash
+cd frontend
+node --test src/crypto/__tests__/passwordGenerator.test.ts
+```
+The test suite runs 19 automated tests verifying:
+- CSPRNG character distribution and statistical entropy.
+- Ambiguous character omission (`Il1O0o`).
+- PIN and passphrase generation formatting.
+- Rejection sampling correctness.
+- Static assertion that `Math.random`, `console.*`, and persistent storage APIs (`localStorage`/`sessionStorage`) are never touched by the generator.
+
+### API Integration Testing with Postman
+A comprehensive, ready-to-run Postman collection is located at the root of the repository:
+**`CipherWarden.postman_collection.json`**
+
+Import the collection into Postman, set the `baseUrl` collection variable to `http://localhost:5000/api/v1`, and provide your `testApiKey` to run end-to-end API workflows across vault setup, unlock, item CRUD, folder assignment, and locking.
 
 ---
 
-## Security Notes
+## Security & Threat Model
 
-- The master key, KEK and DEK **never leave the browser** except as a wrapped (encrypted) DEK.
-- The wrapped DEK is bound to the public salt via AES-GCM AAD, so an envelope cannot be swapped between vaults.
-- Each credential is encrypted with AAD binding `vaultId + credentialId + version` — ciphertext is not portable.
-- Sessions store only a hash of the token; the raw token lives in an HttpOnly, SameSite=Strict cookie.
-- The DEK is held in memory only and dropped on lock or inactivity auto-lock.
-- **There is no password reset.** Lose the master key, lose the vault — by design.
+- **The Master Key is Never Transmitted:** Key derivation happens entirely on the client using Argon2id. Only an authentication verifier proof is ever sent to the backend.
+- **Envelope Encryption (DEK Wrapped by KEK):** The Data Encryption Key (DEK) is generated on the client, wraps vault secrets with AES-256-GCM, and is stored on the server only in wrapped form using the Key Encryption Key (KEK).
+- **Authenticated Additional Data (AAD) Binding:** Every vault item binds `vaultId + itemId + encryptionVersion` as AAD during AES-GCM encryption. Ciphertext cannot be copied or replayed across records or vaults.
+- **Hardened Session Isolation:** Sessions use HttpOnly, SameSite=Lax cookies with server-side token hashing and custom CSRF protection tokens for state-mutating requests.
+- **Zero-Knowledge Design (No Password Reset):** There is no account recovery or password reset mechanism by design. Without the master key, ciphertext cannot be decrypted.
 
 ---
 
 ## License
 
-MIT
+This project is licensed under the [MIT License](LICENSE).
