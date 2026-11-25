@@ -66,7 +66,7 @@ export function DashboardPage() {
       if (activeFilter.kind === "all") return true;
       if (activeFilter.kind === "type") return item.type === activeFilter.type;
       if (activeFilter.kind === "folder") return item.folderId === activeFilter.folderId;
-      if (activeFilter.kind === "favorites") return false; // Stub - Phase 6.4
+      if (activeFilter.kind === "favorites") return item.isFavorite === true;
       return true;
     });
   }, [credentials, activeFilter]);

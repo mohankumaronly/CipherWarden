@@ -4,10 +4,12 @@
  */
 
 import { useState } from "react";
-import { Check, Copy, Eye, EyeOff, ExternalLink, Pencil, Trash2 } from "lucide-react";
+import { Check, Copy, Eye, EyeOff, ExternalLink, Pencil, Star, Trash2 } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { useToast } from "../../components/ui/Toast";
+import { useVault } from "../../contexts/VaultContext";
+import { QuickFolderMenu } from "../dashboard/QuickFolderMenu";
 import type { VaultLoginItem } from "../../types";
 import { avatarColor, formatRelativeTime, initials } from "../../utils/format";
 
@@ -47,6 +49,7 @@ const API_BASE = (
  * @param props.onDelete - Callback to open delete confirmation modal.
  */
 export function CredentialRow({ credential, onEdit, onDelete }: CredentialRowProps) {
+  const { toggleFavorite } = useVault();
   const { toast } = useToast();
   const [revealed, setRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -139,6 +142,22 @@ export function CredentialRow({ credential, onEdit, onDelete }: CredentialRowPro
           {formatRelativeTime(credential.updatedAt)}
         </Badge>
         <div className="flex gap-1 ml-auto">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => toggleFavorite(credential.id, !credential.isFavorite)}
+            aria-label={credential.isFavorite ? "Unfavorite credential" : "Favorite credential"}
+            title={credential.isFavorite ? "Unfavorite credential" : "Favorite credential"}
+          >
+            <Star
+              className={`h-4 w-4 ${
+                credential.isFavorite
+                  ? "fill-yellow-500 text-yellow-500"
+                  : "text-slate-400 hover:text-yellow-500"
+              }`}
+            />
+          </Button>
+          <QuickFolderMenu itemId={credential.id} currentFolderId={credential.folderId} />
           <Button variant="ghost" size="icon" onClick={() => onEdit(credential)} aria-label="Edit credential">
             <Pencil className="h-4 w-4" />
           </Button>

@@ -34,6 +34,7 @@ export type VaultItemType = "LOGIN" | "CARD";
 export interface VaultItemRecord {
   id: string;
   type: string;
+  isFavorite: boolean;
   folderId: string | null;
   ciphertext: string;
   nonce: string;
@@ -47,6 +48,7 @@ export interface VaultItemRecord {
 export interface VaultLoginItem {
   id: string;
   type: "LOGIN";
+  isFavorite: boolean;
   folderId: string | null;
   title: string;
   username: string;
@@ -63,6 +65,7 @@ export interface VaultLoginItem {
 export interface VaultCardItem {
   id: string;
   type: "CARD";
+  isFavorite: boolean;
   folderId: string | null;
   title: string;
   cardholderName: string;

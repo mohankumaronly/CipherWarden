@@ -7,6 +7,7 @@ export interface CreateVaultItemRequest {
   id: string;
   /** Discriminator stored server-side ("LOGIN" | "CARD"). */
   type: string;
+  isFavorite?: boolean;
   folderId?: string | null;
   ciphertext: string;
   nonce: string;
@@ -14,11 +15,12 @@ export interface CreateVaultItemRequest {
 }
 
 export interface UpdateVaultItemRequest {
+  isFavorite?: boolean;
   folderId?: string | null;
-  ciphertext: string;
-  nonce: string;
-  encryptionVersion: number;
-  expectedRecordVersion: number;
+  ciphertext?: string;
+  nonce?: string;
+  encryptionVersion?: number;
+  expectedRecordVersion?: number;
 }
 
 /** API client for the /credentials endpoint (name kept for backend compat). */

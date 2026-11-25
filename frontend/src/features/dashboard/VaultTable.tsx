@@ -10,13 +10,16 @@ import {
   CreditCard,
   ExternalLink,
   Pencil,
+  Star,
   Trash2,
 } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { useToast } from "../../components/ui/Toast";
+import { useVault } from "../../contexts/VaultContext";
 import { CredentialRow } from "../credentials/CredentialRow";
 import { CardRow } from "../cards/CardRow";
+import { QuickFolderMenu } from "./QuickFolderMenu";
 import type { VaultItem, VaultLoginItem, VaultCardItem } from "../../types";
 import { avatarColor, formatRelativeTime, initials } from "../../utils/format";
 
@@ -91,6 +94,7 @@ function TableItemAvatar({ item }: { item: VaultItem }) {
  * @param props.onDelete - Callback invoked when an item is selected for deletion.
  */
 export function VaultTable({ items, onEdit, onDelete }: VaultTableProps) {
+  const { toggleFavorite } = useVault();
   const { toast } = useToast();
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -122,7 +126,7 @@ export function VaultTable({ items, onEdit, onDelete }: VaultTableProps) {
               <th scope="col" className="w-28 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">
                 Updated
               </th>
-              <th scope="col" className="w-28 px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">
+              <th scope="col" className="w-48 px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">
                 Actions
               </th>
             </tr>
@@ -187,8 +191,24 @@ export function VaultTable({ items, onEdit, onDelete }: VaultTableProps) {
                   </td>
 
                   {/* Actions Column */}
-                  <td className="w-28 px-4 py-3.5 text-right whitespace-nowrap">
+                  <td className="w-48 px-4 py-3.5 text-right whitespace-nowrap">
                     <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleFavorite(item.id, !item.isFavorite)}
+                        aria-label={item.isFavorite ? "Unfavorite item" : "Favorite item"}
+                        title={item.isFavorite ? "Unfavorite item" : "Favorite item"}
+                      >
+                        <Star
+                          className={`h-4 w-4 ${
+                            item.isFavorite
+                              ? "fill-yellow-500 text-yellow-500"
+                              : "text-slate-400 hover:text-yellow-500"
+                          }`}
+                        />
+                      </Button>
+                      <QuickFolderMenu itemId={item.id} currentFolderId={item.folderId} />
                       <Button
                         variant="ghost"
                         size="sm"
