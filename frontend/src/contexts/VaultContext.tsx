@@ -48,6 +48,8 @@ interface VaultContextValue {
   updateCredential: (id: string, input: PlainVaultPayload) => Promise<void>;
   deleteCredential: (id: string) => Promise<void>;
   reloadCredentials: () => Promise<void>;
+  toggleFavorite: (id: string, isFavorite: boolean) => Promise<void>;
+  assignFolder: (id: string, folderId: string | null) => Promise<void>;
 
   loadFolders: () => Promise<void>;
   createFolder: (name: string) => Promise<VaultFolder>;
@@ -127,6 +129,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
               ...plain,
               type: resolvedType,
               id: r.id,
+              isFavorite: r.isFavorite ?? false,
               folderId: r.folderId,
               recordVersion: r.recordVersion,
               encryptionVersion: r.encryptionVersion,
@@ -337,6 +340,57 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     [vaultId]
   );
 
+  /**
+   * Toggle favorite status of a vault item.
+   * Optimistically updates the local state and syncs with the backend.
+   */
+  const toggleFavorite = useCallback(
+    async (id: string, isFavorite: boolean) => {
+      setCredentials((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, isFavorite } : c))
+      );
+      try {
+        await vaultItemApi.update(id, { isFavorite });
+      } catch (err) {
+        // Rollback state on error
+        setCredentials((prev) =>
+          prev.map((c) => (c.id === id ? { ...c, isFavorite: !isFavorite } : c))
+        );
+        throw err;
+      }
+    },
+    []
+  );
+
+  /**
+   * Quick assignment of an item to a folder (or unassigning if null).
+   * Optimistically updates the local state and syncs with the backend.
+   */
+  const assignFolder = useCallback(
+    async (id: string, folderId: string | null) => {
+      let previousFolderId: string | null = null;
+      setCredentials((prev) =>
+        prev.map((c) => {
+          if (c.id === id) {
+            previousFolderId = c.folderId;
+            return { ...c, folderId };
+          }
+          return c;
+        })
+      );
+      try {
+        await vaultItemApi.update(id, { folderId });
+      } catch (err) {
+        // Rollback state on error
+        setCredentials((prev) =>
+          prev.map((c) => (c.id === id ? { ...c, folderId: previousFolderId } : c))
+        );
+        throw err;
+      }
+    },
+    []
+  );
+
   // UPDATED: Session restoration on refresh
   useEffect(() => {
     const initSession = async () => {
@@ -441,6 +495,8 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       loadFolders,
       createFolder,
       deleteFolder,
+      toggleFavorite,
+      assignFolder,
     }),
     [
       status,
@@ -463,6 +519,8 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       loadFolders,
       createFolder,
       deleteFolder,
+      toggleFavorite,
+      assignFolder,
     ]
   );
 

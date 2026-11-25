@@ -4,10 +4,12 @@
  */
 
 import { useState } from "react";
-import { Check, Copy, CreditCard, Eye, EyeOff, Pencil, Trash2 } from "lucide-react";
+import { Check, Copy, CreditCard, Eye, EyeOff, Pencil, Star, Trash2 } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { useToast } from "../../components/ui/Toast";
+import { useVault } from "../../contexts/VaultContext";
+import { QuickFolderMenu } from "../dashboard/QuickFolderMenu";
 import type { VaultCardItem } from "../../types";
 import { formatRelativeTime } from "../../utils/format";
 
@@ -35,6 +37,7 @@ function maskCardNumber(cardNumber: string): string {
  * @param props.onDelete - Callback to open the delete confirmation dialog.
  */
 export function CardRow({ card, onEdit, onDelete }: CardRowProps) {
+  const { toggleFavorite } = useVault();
   const { toast } = useToast();
   const [revealed, setRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -103,11 +106,27 @@ export function CardRow({ card, onEdit, onDelete }: CardRowProps) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-2 sm:justify-end">
+      <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
         <Badge tone="slate" className="hidden shrink-0 md:inline-flex">
           {formatRelativeTime(card.updatedAt)}
         </Badge>
-        <div className="flex gap-1">
+        <div className="flex gap-1 ml-auto">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => toggleFavorite(card.id, !card.isFavorite)}
+            aria-label={card.isFavorite ? "Unfavorite card" : "Favorite card"}
+            title={card.isFavorite ? "Unfavorite card" : "Favorite card"}
+          >
+            <Star
+              className={`h-4 w-4 ${
+                card.isFavorite
+                  ? "fill-yellow-500 text-yellow-500"
+                  : "text-slate-400 hover:text-yellow-500"
+              }`}
+            />
+          </Button>
+          <QuickFolderMenu itemId={card.id} currentFolderId={card.folderId} />
           <Button
             variant="ghost"
             size="icon"

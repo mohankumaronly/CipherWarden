@@ -48,7 +48,7 @@ export function NewItemMenu({ onNewLogin, onNewCard }: NewItemMenuProps) {
       </Button>
 
       {open && (
-        <div className="absolute right-0 z-30 mt-2 w-48 origin-top-right rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl animate-fade-in dark:border-slate-800 dark:bg-slate-900">
+        <div className="absolute left-0 sm:left-auto sm:right-0 top-full z-30 mt-1 w-48 origin-top-left sm:origin-top-right rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl animate-fade-in dark:border-slate-800 dark:bg-slate-900">
           <button
             onClick={() => {
               setOpen(false);

@@ -66,7 +66,7 @@ export function DashboardPage() {
       if (activeFilter.kind === "all") return true;
       if (activeFilter.kind === "type") return item.type === activeFilter.type;
       if (activeFilter.kind === "folder") return item.folderId === activeFilter.folderId;
-      if (activeFilter.kind === "favorites") return false; // Stub - Phase 6.4
+      if (activeFilter.kind === "favorites") return item.isFavorite === true;
       return true;
     });
   }, [credentials, activeFilter]);
@@ -141,7 +141,7 @@ export function DashboardPage() {
 
   return (
     <VaultLayout sidebarOpen={sidebarOpen} onCloseSidebar={() => setSidebarOpen(false)}>
-      <div className="flex flex-col min-h-full">
+      <div className="flex flex-col min-h-full w-full min-w-0 overflow-hidden">
         {/* Top header */}
         <div className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 p-6 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -196,7 +196,7 @@ export function DashboardPage() {
         </div>
 
         {/* Content list area */}
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-6 w-full min-w-0">
           {loadingCredentials ? (
             <div className="flex flex-col items-center gap-3 py-20 text-slate-400">
               <Spinner />

@@ -54,6 +54,7 @@ model VaultItem {
   vaultId           String
   /// Discriminator: "LOGIN" | "CARD" (open string to allow future types without migrations)
   type              String   @default("LOGIN")
+  isFavorite        Boolean  @default(false)
   folderId          String?
   ciphertext        String
   nonce             String

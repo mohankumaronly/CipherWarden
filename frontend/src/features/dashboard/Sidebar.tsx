@@ -46,6 +46,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const totalLogins = credentials.filter((c) => c.type === "LOGIN").length;
   const totalCards = credentials.filter((c) => c.type === "CARD").length;
+  const totalFavorites = credentials.filter((c) => c.isFavorite).length;
 
   const handleSelectFilter = (filter: VaultFilter) => {
     setActiveFilter(filter);
@@ -149,7 +150,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <Star className="h-4 w-4" />
                 <span>Favorites</span>
               </div>
-              <span className="text-xs text-slate-400">0</span>
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                {totalFavorites}
+              </span>
             </button>
           </div>
         </div>
@@ -264,6 +267,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </div>
         </div>
       </div>
+    </aside>
 
       {/* New Folder Modal */}
       <Dialog
@@ -334,7 +338,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           ?
         </p>
       </Dialog>
-    </aside>
-  </>
+    </>
   );
 }
