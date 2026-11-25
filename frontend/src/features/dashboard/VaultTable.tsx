@@ -113,10 +113,10 @@ export function VaultTable({ items, onEdit, onDelete }: VaultTableProps) {
   return (
     <div>
       {/* Desktop Data Table */}
-      <div className="hidden md:block w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
+      <div className="hidden md:block w-full overflow-hidden border-y border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <table className="w-full table-fixed divide-y divide-slate-200 text-left text-sm dark:divide-slate-800">
           <thead className="bg-slate-50/75 dark:bg-slate-950/50">
-            <tr>
+            <tr className="border-b border-slate-200 dark:border-slate-800">
               <th scope="col" className="w-1/3 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Name
               </th>
@@ -131,7 +131,7 @@ export function VaultTable({ items, onEdit, onDelete }: VaultTableProps) {
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
             {items.map((item) => {
               const isLogin = item.type === "LOGIN";
               const primarySubtitle = isLogin ? item.username : item.cardholderName || "Payment card";
@@ -140,7 +140,7 @@ export function VaultTable({ items, onEdit, onDelete }: VaultTableProps) {
               return (
                 <tr
                   key={item.id}
-                  className="group transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/50"
+                  className="group border-b border-slate-100 transition-colors hover:bg-slate-50/80 dark:border-slate-800 dark:hover:bg-slate-800/50"
                 >
                   {/* Name Column */}
                   <td className="px-4 py-3.5 truncate">
