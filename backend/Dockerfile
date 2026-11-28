@@ -1,42 +1,26 @@
-FROM node:24-bookworm-slim AS builder
-
+# Build Stage
+FROM node:22-slim AS build
 WORKDIR /app
-
-RUN apt-get update -y \
- && apt-get install -y --no-install-recommends openssl ca-certificates \
- && rm -rf /var/lib/apt/lists/*
-
-COPY package.json package-lock.json ./
+COPY package*.json ./
 COPY prisma ./prisma
 RUN npm ci
-
 RUN npx prisma generate
-
 COPY tsconfig.json ./
 COPY src ./src
 RUN npm run build
 
-FROM node:24-bookworm-slim AS runner
-
-ENV NODE_ENV=production \
-    PORT=5000
-
+# Runner Stage
+FROM node:22-slim AS runner
 WORKDIR /app
-
-RUN apt-get update -y \
- && apt-get install -y --no-install-recommends openssl ca-certificates \
- && rm -rf /var/lib/apt/lists/*
-
-COPY package.json package-lock.json ./
+COPY package*.json ./
 COPY prisma ./prisma
-RUN npm ci --omit=dev && npm cache clean --force
-
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-
-COPY --from=builder /app/dist ./dist
-
-USER node
-
+# Install ALL deps (including prisma CLI) for migrate deploy
+RUN npm ci
+RUN npx prisma generate
+# Copy only the built JS from the build stage
+COPY --from=build /app/dist ./dist
+COPY tsconfig.json ./
+COPY src ./src
+ENV NODE_ENV=production
 EXPOSE 5000
-
-CMD ["node", "dist/server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]

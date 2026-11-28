@@ -175,6 +175,36 @@ CipherWarden/
 
 ---
 
+## 🐳 Docker Deployment
+
+CipherWarden provides modular Docker Compose configurations for multiple deployment scenarios. Copy `.env.docker.example` to `.env` to configure credentials.
+
+> [!WARNING]
+> Use `SESSION_SECRET` with at least 32 chars and `COOKIE_SAME_SITE=none` in production HTTPS.
+
+### 1. Local Dev (with Postgres):
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+```
+
+### 2. Production with Local Postgres:
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+### 3. Production with External DB (Neon/Supabase):
+Set `DATABASE_URL` in `.env`, then:
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod-external-db.yml up -d
+```
+
+### 4. Backend Only (Frontend on Vercel):
+```bash
+docker compose -f docker-compose.yml up backend -d
+```
+
+---
+
 ## API Reference
 
 Base URL: `/api/v1`
