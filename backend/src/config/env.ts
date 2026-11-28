@@ -16,6 +16,10 @@ if (rawClientOrigin !== rawClientOrigin.trim() && rawClientOrigin.trim() !== "")
 // Overwrite in-process so Zod and all subsequent consumers see the clean value.
 process.env.CLIENT_ORIGIN = rawClientOrigin.trim() || undefined;
 
+if (!process.env.MASTER_KEY || process.env.MASTER_KEY.trim() === "") {
+  delete process.env.MASTER_KEY;
+}
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   PORT: z.coerce.number().int().positive().default(5000),

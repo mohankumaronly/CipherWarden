@@ -1,0 +1,39 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cw_user
+      POSTGRES_PASSWORD: cw_password
+      POSTGRES_DB: cipherwarden
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cw_user"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://cw_user:cw_password@postgres:5432/cipherwarden
+      - CLIENT_ORIGIN=http://localhost:5173
+      - MASTER_KEY=${MASTER_KEY:-change-this-to-your-own-secret-master-key}
+    command: npm run dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:80"
+    # For dev, we might mount or use standard nginx
+
+volumes:
+  pg_data:
